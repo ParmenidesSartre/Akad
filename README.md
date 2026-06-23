@@ -1,8 +1,28 @@
 # Akad
 
+[![PyPI version](https://img.shields.io/pypi/v/akad-framework.svg)](https://pypi.org/project/akad-framework/)
+[![Python versions](https://img.shields.io/pypi/pyversions/akad-framework.svg)](https://pypi.org/project/akad-framework/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Akad** (Malay/Arabic: *contract, covenant* — the term for the underlying contract of any Islamic finance product) is a lightweight Python library for defining, enforcing, and monitoring data quality contracts on batch datasets. Built for data engineering pipelines — works standalone, in Airflow, or any Python environment.
 
-Published on PyPI: [`pip install akad-framework`](https://pypi.org/project/akad-framework/)
+```bash
+pip install akad-framework
+```
+
+## Table of Contents
+
+- [What it does](#what-it-does)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Workflow](#workflow)
+- [Contract YAML Reference](#contract-yaml-reference)
+- [CLI Reference](#cli-reference)
+- [Python SDK Reference](#python-sdk-reference)
+- [Development Setup](#development-setup)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -394,8 +414,8 @@ DataContractValidator(
 ## Development Setup
 
 ```bash
-git clone <repo-url>
-cd akad
+git clone https://github.com/ParmenidesSartre/Akad.git
+cd Akad
 
 # Install with all extras + dev tools
 pip install uv
@@ -447,4 +467,22 @@ akad/
 
 ---
 
-*akad-framework v1.0.0 — Faizal Azman — MMU MCS Software Engineering — 2026*
+## Contributing
+
+Issues and pull requests are welcome. Before submitting a change:
+
+```bash
+uv run pytest        # full suite must pass
+```
+
+Please keep new functionality covered by tests — the project maintains ~99% coverage.
+
+---
+
+## License
+
+[MIT](LICENSE) © Faizal Azman
+
+---
+
+*akad-framework v1.0.0*
