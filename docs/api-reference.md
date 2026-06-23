@@ -13,3 +13,9 @@ Auto-generated from docstrings in the source. See [SDK Reference](sdk-reference.
 ::: akad.contract_loader.load_contract
 
 ::: akad.registry_client.RegistryClient
+
+::: akad.profiler.profile_dataframe
+
+::: akad.profiler.generate_contract
+
+::: akad.profiler.contract_to_yaml_dict

@@ -94,6 +94,7 @@ When a producer pipeline changes a dataset (renames a column, drops rows, adds b
 
 ### CLI
 
+- `akad infer` — profile an existing dataset and scaffold a starter contract YAML
 - `akad check` — parse and validate YAML syntax without touching data (CI-safe)
 - `akad publish` — register a contract version
 - `akad validate` — run full validation, exit 1 on breach (CI-friendly)
@@ -329,12 +330,25 @@ notifications:
 ## CLI Reference
 
 ```
+akad infer     --name NAME      [--format parquet|sql]  [--location PATH | --connection-string URL --table-name NAME]  [--output PATH]
 akad check     --contract PATH
 akad publish   --contract PATH  --registry-url URL
 akad validate  --contract PATH  [--registry-url URL]  [--output text|json]
 akad list      --registry-url URL
 akad history   --name NAME      --registry-url URL     [--limit N]
 ```
+
+### `akad infer` — scaffold a starter contract
+
+Profiles an existing dataset and writes a starter contract YAML — column types, nullability, low-cardinality `allowed_values`, key-like column quality rules, and a volume band around the observed row count.
+
+```bash
+akad infer --name daily_sales --location data/daily_sales.parquet \
+  --owner-team "Data Engineering" --owner-email data@example.com \
+  --output contracts/daily_sales.yaml
+```
+
+This is a **starting point, not a finished contract** — every inferred rule reflects only what the data looked like when profiled, not the business rules it's supposed to follow. Review and tighten it (especially `allowed_values` and volume bounds) before relying on it in CI or production.
 
 ---
 

@@ -8,9 +8,11 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
+import yaml
 from typer.testing import CliRunner
 
 from akad.cli import app
+from akad.models.contract import DataContract
 
 runner = CliRunner()
 
@@ -135,6 +137,54 @@ class TestList:
                 app, ["list", "--registry-url", "http://localhost:8000"]
             )
         assert result.exit_code == 1
+
+
+class TestInfer:
+    def test_infers_contract_to_stdout(self, tmp_parquet):
+        result = runner.invoke(app, [
+            "infer", "--name", "transactions", "--location", str(tmp_parquet),
+        ])
+        assert result.exit_code == 0
+        # strip the leading `#` comment header before parsing as YAML
+        body = "\n".join(
+            line for line in result.output.splitlines() if not line.startswith("#")
+        )
+        contract = DataContract.model_validate(yaml.safe_load(body))
+        assert contract.metadata.name == "transactions"
+        assert contract.dataset.location == str(tmp_parquet)
+        assert {c.name for c in contract.schema_.columns} == {
+            "transaction_id", "amount", "currency_code", "status",
+        }
+
+    def test_infers_contract_to_output_file(self, tmp_path, tmp_parquet):
+        out = tmp_path / "starter.yaml"
+        result = runner.invoke(app, [
+            "infer", "--name", "transactions", "--location", str(tmp_parquet),
+            "--output", str(out),
+        ])
+        assert result.exit_code == 0
+        assert "Wrote starter contract" in result.output
+        assert out.exists()
+        body = "\n".join(
+            line for line in out.read_text().splitlines() if not line.startswith("#")
+        )
+        contract = DataContract.model_validate(yaml.safe_load(body))
+        assert contract.metadata.name == "transactions"
+
+    def test_requires_location_for_parquet(self):
+        result = runner.invoke(app, ["infer", "--name", "x"])
+        assert result.exit_code == 2
+        assert "--location is required" in result.output
+
+    def test_requires_connection_string_and_table_for_sql(self):
+        result = runner.invoke(app, ["infer", "--name", "x", "--format", "sql"])
+        assert result.exit_code == 2
+        assert "--connection-string and --table-name are required" in result.output
+
+    def test_rejects_unsupported_format(self):
+        result = runner.invoke(app, ["infer", "--name", "x", "--format", "csv"])
+        assert result.exit_code == 2
+        assert "unsupported format" in result.output
 
 
 class TestHistory:

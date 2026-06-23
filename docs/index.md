@@ -62,6 +62,15 @@ When a producer pipeline changes a dataset (renames a column, drops rows, adds b
 
 FastAPI + Jinja2 + Tailwind (CDN, no build step) — overview of all contracts, compliant vs breach counts, per-contract validation history, breach history with status filters, contract discovery/search.
 
+### CLI
+
+- `akad infer` — profile an existing dataset and scaffold a starter contract YAML
+- `akad check` — parse and validate YAML syntax without touching data (CI-safe)
+- `akad publish` — register a contract version
+- `akad validate` — run full validation, exit 1 on breach (CI-friendly)
+- `akad list` — list all current contracts in registry
+- `akad history` — show recent validation runs for a contract
+
 ### Developer Experience
 
 - `validate_dataframe(df, contract)` — skip storage reads in unit tests, pass a DataFrame directly
