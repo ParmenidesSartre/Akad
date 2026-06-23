@@ -500,4 +500,4 @@ Please keep new functionality covered by tests — the project maintains ~99% co
 
 ---
 
-*akad-framework v1.0.0*
+*akad-framework v1.1.0*
