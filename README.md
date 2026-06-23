@@ -1,7 +1,7 @@
 # Akad
 
-[![PyPI version](https://img.shields.io/pypi/v/akad-framework.svg)](https://pypi.org/project/akad-framework/)
-[![Python versions](https://img.shields.io/pypi/pyversions/akad-framework.svg)](https://pypi.org/project/akad-framework/)
+[![PyPI version](https://img.shields.io/pypi/v/akad-framework.svg?cacheSeconds=3600)](https://pypi.org/project/akad-framework/)
+[![Python versions](https://img.shields.io/pypi/pyversions/akad-framework.svg?cacheSeconds=3600)](https://pypi.org/project/akad-framework/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue.svg)](https://parmenidessartre.github.io/Akad/)
 
