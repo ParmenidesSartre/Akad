@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Akad Dashboard{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full font-sans text-slate-800 antialiased">
+
+  <nav class="bg-slate-900 text-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center gap-8">
+        <a href="/" class="text-lg font-semibold text-white whitespace-nowrap">Akad Dashboard</a>
+        <div class="flex gap-6 text-sm font-medium">
+          <a href="/"
+             class="{{ 'text-white' if active == 'overview' else 'text-slate-400 hover:text-white' }} transition-colors">
+            Overview
+          </a>
+          <a href="/breaches"
+             class="{{ 'text-white' if active == 'breaches' else 'text-slate-400 hover:text-white' }} transition-colors">
+            Breach History
+          </a>
+          <a href="/discovery"
+             class="{{ 'text-white' if active == 'discovery' else 'text-slate-400 hover:text-white' }} transition-colors">
+            Discovery
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% if error %}
+    <div class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <span class="font-semibold">Registry unavailable:</span> {{ error }}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

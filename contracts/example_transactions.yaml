@@ -1,0 +1,82 @@
+apiVersion: datacontract/v1
+kind: DataContract
+
+metadata:
+  name: daily_transactions
+  version: "1.0.0"
+  description: >
+    Daily cleaned transaction records produced by the Core Banking Pipeline.
+    Updated every night. Used by Fraud Detection and Regulatory Reporting.
+  owner:
+    team: Core Banking Pipeline Team
+    email: corebanking@example.com
+  tags:
+    - finance
+    - transactions
+    - daily
+
+dataset:
+  format: parquet
+  location: data/daily_transactions/
+
+on_breach: warn
+
+consumers:
+  - team: Fraud Detection Team
+    email: fraud@example.com
+  - team: Regulatory Reporting Team
+    email: reporting@example.com
+
+schema:
+  enforce_no_extra_columns: false
+  columns:
+    - name: transaction_id
+      type: string
+      nullable: false
+      description: Unique transaction identifier
+
+    - name: transaction_date
+      type: date
+      nullable: false
+
+    - name: amount
+      type: float
+      nullable: false
+
+    - name: currency_code
+      type: string
+      nullable: false
+      allowed_values:
+        - MYR
+        - USD
+        - SGD
+
+    - name: status
+      type: string
+      nullable: true
+      allowed_values:
+        - COMPLETED
+        - PENDING
+        - FAILED
+        - REVERSED
+
+freshness:
+  max_age_hours: 25
+  check_column: transaction_date
+
+volume:
+  min_rows: 10000
+  max_rows: 5000000
+
+quality:
+  - column: transaction_id
+    max_null_percentage: 0.0
+    max_duplicate_percentage: 0.0
+
+  - column: amount
+    max_null_percentage: 0.0
+    min_value: 0.01
+    max_value: 10000000.0
+
+  - column: currency_code
+    max_null_percentage: 0.5

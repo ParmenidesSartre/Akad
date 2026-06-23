@@ -1,0 +1,94 @@
+[build-system]
+requires      = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name            = "akad-framework"
+version         = "1.0.0"
+description     = "Akad — a lightweight data contract framework for automated data quality enforcement in lakehouse pipelines"
+readme          = "README.md"
+license         = "MIT"
+requires-python = ">=3.12"
+authors         = [{name = "Faizal Azman", email = "faizalazman88@gmail.com"}]
+keywords        = ["data-contracts", "data-quality", "data-engineering", "airflow", "lakehouse"]
+classifiers     = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+]
+
+# Core: what Airflow workers (and any pipeline) need to run validation
+dependencies = [
+    "httpx>=0.28",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "sqlalchemy>=2.0",
+    "typer>=0.9",
+]
+
+[project.urls]
+"Source Code" = "https://github.com/faizalazman/akad-framework"
+"Bug Tracker" = "https://github.com/faizalazman/akad-framework/issues"
+
+[project.optional-dependencies]
+# pip install akad-framework[registry]  — run the registry server
+registry = [
+    "alembic>=1.18",
+    "fastapi>=0.136",
+    "psycopg2-binary>=2.9",
+    "uvicorn[standard]>=0.29",
+]
+# pip install akad-framework[dashboard]  — run the observability dashboard
+dashboard = [
+    "fastapi>=0.136",
+    "jinja2>=3.1",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.28",
+]
+# pip install akad-framework[all]  — everything
+all = [
+    "akad-framework[registry]",
+    "akad-framework[dashboard]",
+]
+
+[project.scripts]
+akad = "akad.cli:app"
+
+[dependency-groups]
+dev = [
+    "faker>=37.0",
+    "httpx>=0.28",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    # registry extras needed to run integration tests
+    "alembic>=1.18",
+    "fastapi>=0.136",
+    "psycopg2-binary>=2.9",
+    "uvicorn[standard]>=0.29",
+    # dashboard extras
+    "jinja2>=3.1",
+]
+
+[tool.pytest.ini_options]
+testpaths        = ["tests"]
+addopts          = "-v --cov=akad --cov-report=term-missing --cov-report=html:htmlcov"
+asyncio_mode     = "auto"
+filterwarnings   = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source   = ["akad"]
+omit     = ["akad/cli.py", "tests/*"]
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["akad*", "registry*", "dashboard*"]
+
+[tool.setuptools.package-data]
+dashboard = ["templates/*.html"]

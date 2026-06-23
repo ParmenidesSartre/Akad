@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Akad Dashboard — Discovery{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Dataset Discovery</h1>
+<p class="mt-1 text-sm text-slate-500">Search registered contracts by name.</p>
+
+<form method="get" class="mt-4">
+  <input type="text" name="q" value="{{ query }}" placeholder="Search contracts by name..."
+         class="w-full max-w-md rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+</form>
+
+<div class="mt-6 space-y-3">
+  {% if contracts %}
+    {% for c in contracts %}
+    <details class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm">
+        <span class="font-medium text-slate-900">{{ c.name }}</span>
+        <span class="text-slate-500">v{{ c.version }} · published {{ c.published_at }}</span>
+      </summary>
+      <div class="border-t border-slate-100 px-4 py-3 text-sm">
+        <a href="/contracts/{{ c.name }}" class="text-indigo-600 hover:underline">View full contract &amp; history &rarr;</a>
+      </div>
+    </details>
+    {% endfor %}
+  {% else %}
+  <p class="text-sm text-slate-500">No contracts match "{{ query }}".</p>
+  {% endif %}
+</div>
+{% endblock %}

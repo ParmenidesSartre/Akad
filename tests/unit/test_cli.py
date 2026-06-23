@@ -1,0 +1,168 @@
+"""Tests for the akad CLI — check, validate, publish, list, history.
+
+Uses Typer's CliRunner. Registry-backed commands patch httpx / RegistryClient
+so no server is needed.
+"""
+from __future__ import annotations
+
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+from typer.testing import CliRunner
+
+from akad.cli import app
+
+runner = CliRunner()
+
+
+def _write_contract_yaml(tmp_path, location, *, min_rows=1, on_breach="warn"):
+    path = tmp_path / "contract.yaml"
+    path.write_text(f"""\
+apiVersion: datacontract/v1
+kind: DataContract
+metadata:
+  name: cli_sales
+  version: "1.0.0"
+  owner:
+    team: Test Team
+    email: test@example.com
+dataset:
+  format: parquet
+  location: {location}
+on_breach: {on_breach}
+volume:
+  min_rows: {min_rows}
+""")
+    return path
+
+
+class TestCheck:
+    def test_valid_contract_exits_zero(self, tmp_path):
+        path = _write_contract_yaml(tmp_path, "/tmp/whatever.parquet")
+        result = runner.invoke(app, ["check", "--contract", str(path)])
+        assert result.exit_code == 0
+        assert "OK" in result.output
+        assert "cli_sales v1.0.0" in result.output
+
+    def test_invalid_yaml_exits_one(self, tmp_path):
+        path = tmp_path / "broken.yaml"
+        path.write_text("apiVersion: wrong/version\nkind: Nope\n")
+        result = runner.invoke(app, ["check", "--contract", str(path)])
+        assert result.exit_code == 1
+
+    def test_missing_file_exits_one(self, tmp_path):
+        result = runner.invoke(
+            app, ["check", "--contract", str(tmp_path / "missing.yaml")]
+        )
+        assert result.exit_code == 1
+
+
+class TestValidate:
+    def test_compliant_exits_zero(self, tmp_path, tmp_parquet):
+        path = _write_contract_yaml(tmp_path, tmp_parquet.as_posix())
+        result = runner.invoke(app, ["validate", "--contract", str(path)])
+        assert result.exit_code == 0
+        assert "COMPLIANT" in result.output
+
+    def test_breach_warn_mode_exits_one(self, tmp_path, tmp_parquet):
+        path = _write_contract_yaml(tmp_path, tmp_parquet.as_posix(), min_rows=999)
+        result = runner.invoke(app, ["validate", "--contract", str(path)])
+        assert result.exit_code == 1
+        assert "BREACH" in result.output
+        assert "Failed clauses" in result.output
+
+    def test_breach_fail_mode_exits_one(self, tmp_path, tmp_parquet):
+        """on_breach: fail raises internally — CLI still prints result, exit 1."""
+        path = _write_contract_yaml(tmp_path, tmp_parquet.as_posix(),
+                                    min_rows=999, on_breach="fail")
+        result = runner.invoke(app, ["validate", "--contract", str(path)])
+        assert result.exit_code == 1
+        assert "BREACH" in result.output
+
+    def test_json_output(self, tmp_path, tmp_parquet):
+        path = _write_contract_yaml(tmp_path, tmp_parquet.as_posix(), min_rows=999)
+        result = runner.invoke(
+            app, ["validate", "--contract", str(path), "--output", "json"]
+        )
+        payload = json.loads(result.output)
+        assert payload["status"] == "BREACH"
+        assert payload["row_count"] == 10
+        assert payload["failed_clauses"][0]["clause_type"] == "volume.min_rows"
+
+    def test_unloadable_contract_exits_two(self, tmp_path):
+        result = runner.invoke(
+            app, ["validate", "--contract", str(tmp_path / "missing.yaml")]
+        )
+        assert result.exit_code == 2
+
+
+class TestPublish:
+    def test_publishes_and_echoes_name_version(self, tmp_path):
+        path = _write_contract_yaml(tmp_path, "/tmp/x.parquet")
+        with patch("akad.cli.RegistryClient") as client_cls:
+            result = runner.invoke(app, [
+                "publish", "--contract", str(path),
+                "--registry-url", "http://localhost:8000",
+            ])
+
+        assert result.exit_code == 0
+        assert "Published cli_sales v1.0.0" in result.output
+        client_cls.assert_called_once_with("http://localhost:8000")
+        client_cls.return_value.publish_contract.assert_called_once()
+
+
+class TestList:
+    def test_lists_contracts(self):
+        resp = MagicMock()
+        resp.json.return_value = [
+            {"name": "daily_sales", "version": "1.0.0"},
+            {"name": "weekly_revenue", "version": "2.1.0"},
+        ]
+        with patch("httpx.get", return_value=resp) as get:
+            result = runner.invoke(
+                app, ["list", "--registry-url", "http://localhost:8000/"]
+            )
+
+        assert result.exit_code == 0
+        assert "daily_sales" in result.output
+        assert "v2.1.0" in result.output
+        # trailing slash on registry-url must not produce a double slash
+        assert get.call_args[0][0] == "http://localhost:8000/contracts/"
+
+    def test_unreachable_registry_exits_one(self):
+        with patch("httpx.get", side_effect=ConnectionError("refused")):
+            result = runner.invoke(
+                app, ["list", "--registry-url", "http://localhost:8000"]
+            )
+        assert result.exit_code == 1
+
+
+class TestHistory:
+    def test_shows_validation_runs(self):
+        resp = MagicMock()
+        resp.json.return_value = [
+            {"validated_at": "2026-06-13T00:00:00", "overall_status": "COMPLIANT"},
+            {"validated_at": "2026-06-12T00:00:00", "overall_status": "BREACH"},
+        ]
+        with patch("httpx.get", return_value=resp) as get:
+            result = runner.invoke(app, [
+                "history", "--name", "daily_sales",
+                "--registry-url", "http://localhost:8000/",
+                "--limit", "5",
+            ])
+
+        assert result.exit_code == 0
+        assert "COMPLIANT" in result.output
+        assert "BREACH" in result.output
+        url = get.call_args[0][0]
+        assert url.startswith("http://localhost:8000/validation-results/")
+        assert "contract_name=daily_sales" in url
+        assert "limit=5" in url
+
+    def test_unreachable_registry_exits_one(self):
+        with patch("httpx.get", side_effect=ConnectionError("refused")):
+            result = runner.invoke(app, [
+                "history", "--name", "x", "--registry-url", "http://localhost:8000",
+            ])
+        assert result.exit_code == 1

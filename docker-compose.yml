@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB:       akad
+      POSTGRES_USER:     akad
+      POSTGRES_PASSWORD: akad_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akad"]
+      interval: 5s
+      retries: 5
+
+  registry:
+    build:
+      context: .
+      dockerfile: Dockerfile.registry
+    environment:
+      DATABASE_URL: postgresql://akad:akad_secret@db:5432/akad
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import httpx,sys; r=httpx.get('http://localhost:8000/health/'); sys.exit(0 if r.json().get('status')=='ok' else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    environment:
+      REGISTRY_URL: http://registry:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - registry
+
+  lab:
+    profiles: [lab]
+    build:
+      context: .
+      dockerfile: Dockerfile.lab
+    depends_on:
+      registry:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:

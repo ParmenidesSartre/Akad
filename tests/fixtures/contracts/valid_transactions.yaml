@@ -1,0 +1,60 @@
+apiVersion: datacontract/v1
+kind: DataContract
+
+metadata:
+  name: daily_transactions
+  version: "1.0.0"
+  description: Daily cleaned transaction records — test fixture
+  owner:
+    team: Core Banking Pipeline Team
+    email: corebanking@example.com
+  tags:
+    - finance
+    - transactions
+
+dataset:
+  format: parquet
+  location: tests/fixtures/datasets/transactions.parquet
+
+on_breach: warn
+
+consumers:
+  - team: Fraud Detection Team
+    email: fraud@example.com
+
+schema:
+  enforce_no_extra_columns: false
+  columns:
+    - name: transaction_id
+      type: string
+      nullable: false
+    - name: amount
+      type: float
+      nullable: false
+    - name: currency_code
+      type: string
+      nullable: false
+      allowed_values:
+        - MYR
+        - USD
+        - SGD
+    - name: status
+      type: string
+      nullable: true
+      allowed_values:
+        - COMPLETED
+        - PENDING
+        - FAILED
+
+volume:
+  min_rows: 2
+  max_rows: 1000000
+
+quality:
+  - column: transaction_id
+    max_null_percentage: 0.0
+    max_duplicate_percentage: 0.0
+  - column: amount
+    max_null_percentage: 0.0
+    min_value: 0.01
+    max_value: 10000000.0

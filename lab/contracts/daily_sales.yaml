@@ -1,0 +1,54 @@
+apiVersion: datacontract/v1
+kind: DataContract
+
+metadata:
+  name: daily_sales
+  version: "1.0.0"
+  description: Demo contract used by the Akad end-to-end test lab
+  owner:
+    team: Demo Team
+    email: demo@example.com
+  tags:
+    - demo
+    - finance
+
+dataset:
+  format: parquet
+  location: /data/daily_sales.parquet
+
+on_breach: warn
+
+schema:
+  columns:
+    - name: sale_id
+      type: string
+      nullable: false
+    - name: amount
+      type: float
+      nullable: false
+    - name: currency_code
+      type: string
+      nullable: false
+      allowed_values:
+        - MYR
+        - USD
+        - SGD
+    - name: status
+      type: string
+      nullable: true
+      allowed_values:
+        - COMPLETED
+        - PENDING
+        - FAILED
+
+volume:
+  min_rows: 10
+  max_rows: 10000
+
+quality:
+  - column: sale_id
+    max_null_percentage: 0.0
+    max_duplicate_percentage: 0.0
+  - column: amount
+    min_value: 0.01
+    max_value: 999999.99
