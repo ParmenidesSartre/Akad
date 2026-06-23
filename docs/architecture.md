@@ -56,6 +56,10 @@ A FastAPI service backed by SQLAlchemy (PostgreSQL in production, SQLite for loc
 
 A read-only FastAPI + Jinja2 application, styled with Tailwind via CDN (no frontend build step). Renders four views against the registry's REST API: overview (stats + recent breaches), per-contract detail and validation history, breach history with status filters, and contract discovery/search.
 
+### Profiler (`akad.profiler`)
+
+Not a deployed component — a dev-time tool used by `akad infer`. Reads a dataset through the same reader layer the engine uses, then profiles it to scaffold a starter contract: inferred column types, `allowed_values` for low-cardinality string columns, quality rules that mirror the validators' own formulas (so the contract is self-consistent against the data it was generated from), and a volume band around the observed row count. See the [SDK Reference](sdk-reference.md#akadprofiler-programmatic-contract-inference) for the public functions.
+
 ## Design decisions worth knowing
 
 - **`on_breach: warn` vs `on_breach: fail`** — warn records the breach and lets the pipeline continue (detection); fail raises `DataContractBreachError`, which in Airflow propagates into a failed task and skips downstream tasks (prevention). Both modes post the same `ValidationResult` to the registry.

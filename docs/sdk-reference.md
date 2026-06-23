@@ -70,4 +70,28 @@ DataContractValidator(
 ).validate()
 ```
 
+## `akad.profiler` — programmatic contract inference
+
+The same logic behind [`akad infer`](cli-reference.md#akad-infer-scaffold-a-starter-contract) is available as a library, if you'd rather generate a starter contract from code than the CLI:
+
+```python
+import pyarrow.parquet as pq
+from akad.profiler import generate_contract, contract_to_yaml_dict
+
+df = pq.read_table("data/daily_sales.parquet").to_pandas()
+
+contract = generate_contract(
+    df,
+    name="daily_sales",
+    dataset_format="parquet",
+    owner_team="Data Engineering",
+    owner_email="data@example.com",
+    location="data/daily_sales.parquet",
+)
+
+print(contract_to_yaml_dict(contract))   # dict, ready for yaml.dump()
+```
+
+`generate_contract()` returns a fully-validated `DataContract` — same model the rest of the SDK uses — so it can be passed directly to `validate_dataframe()` without a round-trip through YAML. As with the CLI command, treat the result as a starting point: review `allowed_values` and volume bounds before relying on it.
+
 For auto-generated signatures and docstrings, see the [API Reference](api-reference.md).

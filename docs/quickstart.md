@@ -1,5 +1,8 @@
 # Quick Start
 
+!!! tip "Already have data?"
+    If a dataset already exists, [`akad infer`](cli-reference.md#akad-infer-scaffold-a-starter-contract) can scaffold the contract below for you — `akad infer --name daily_sales --location data/sales/daily.parquet`. Review the output before relying on it; it's a starting point, not a finished contract.
+
 ## 1. Write a contract
 
 ```yaml

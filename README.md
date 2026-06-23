@@ -445,6 +445,11 @@ uv run pytest tests/unit/ -v
 # Integration tests (SQLite, no Docker)
 uv run pytest tests/integration/ -v
 
+# Lint and type-check (same checks CI runs on every push)
+uv sync --group lint
+uv run ruff check .
+uv run mypy
+
 # Start registry locally
 uv run uvicorn registry.main:app --reload --port 8000
 
@@ -466,6 +471,7 @@ akad/
 │   ├── notifiers/           # Webhook, Email notifiers
 │   ├── engine.py            # Orchestrates readers + validators
 │   ├── sdk.py               # DataContractValidator — main public API
+│   ├── profiler.py          # akad infer — dataset profiling, starter contract generation
 │   ├── cli.py                # akad CLI
 │   └── registry_client.py   # HTTP client for the registry
 ├── registry/               # FastAPI registry service
@@ -476,6 +482,7 @@ akad/
 │   ├── integration/        # Engine + registry API tests
 │   └── fixtures/           # Sample contract YAML files
 ├── contracts/              # Example contracts
+├── .github/workflows/      # CI (test + lint), docs deploy, PyPI publish
 ├── docker-compose.yml
 └── pyproject.toml
 ```
@@ -487,10 +494,14 @@ akad/
 Issues and pull requests are welcome. Before submitting a change:
 
 ```bash
-uv run pytest        # full suite must pass
+uv run pytest                # full suite must pass
+uv run ruff check .          # lint
+uv run mypy                  # type-check
 ```
 
-Please keep new functionality covered by tests — the project maintains ~99% coverage.
+All three run automatically on every push/PR via CI — a PR won't merge cleanly if any of them fail. Please keep new functionality covered by tests — the project maintains ~99% coverage.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 
