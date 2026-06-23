@@ -4,10 +4,10 @@ This is the Airflow pattern — no local contract file needed on the worker.
 """
 from __future__ import annotations
 
-import pytest
 import httpx
+import pytest
 
-from akad import DataContractValidator, DataContractBreachError
+from akad import DataContractValidator
 from tests.conftest import make_contract
 
 

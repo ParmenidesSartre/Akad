@@ -5,8 +5,7 @@ The registry_client fixture from conftest.py wires everything up.
 """
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class TestHealthEndpoint:
@@ -99,7 +98,7 @@ class TestValidationResults:
             "contract_name":    contract_name,
             "contract_version": "1.0.0",
             "dataset_location": "/tmp/x.parquet",
-            "validated_at":     datetime.now(timezone.utc).isoformat(),
+            "validated_at":     datetime.now(UTC).isoformat(),
             "overall_status":   status,
             "row_count":        100,
             "clause_results":   [],

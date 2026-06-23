@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from akad.models.result import ClauseStatus
 from akad.validators.quality_validator import QualityValidator

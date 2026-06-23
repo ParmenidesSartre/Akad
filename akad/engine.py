@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 import pandas as pd
 
 from akad.models.contract import DataContract
 from akad.models.result import ClauseResult, ClauseStatus, OverallStatus, ValidationResult
 from akad.readers.parquet_reader import ParquetReader
-from akad.readers.sql_reader     import SQLReader
-from akad.validators.schema_validator    import SchemaValidator
+from akad.readers.sql_reader import SQLReader
 from akad.validators.freshness_validator import FreshnessValidator
-from akad.validators.volume_validator    import VolumeValidator
-from akad.validators.quality_validator   import QualityValidator
+from akad.validators.quality_validator import QualityValidator
+from akad.validators.schema_validator import SchemaValidator
+from akad.validators.volume_validator import VolumeValidator
 
 _READERS = {
     "parquet": ParquetReader,
@@ -29,14 +28,14 @@ _DEFAULT_VALIDATORS = [
 
 def validate(
     contract: DataContract,
-    extra_validators: Optional[List] = None,
+    extra_validators: list | None = None,
 ) -> ValidationResult:
     """Run all validators against the dataset described in *contract*.
 
     Reads data from storage. Use validate_dataframe() for unit-test-friendly validation
     that skips the read step.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     location = str(contract.dataset.location or contract.dataset.table_name or "")
 
     reader_cls = _READERS.get(contract.dataset.format)
@@ -65,7 +64,7 @@ def validate(
         )
 
     try:
-        last_modified: Optional[float] = reader.get_last_modified(contract.dataset)
+        last_modified: float | None = reader.get_last_modified(contract.dataset)
     except Exception:
         last_modified = None
 
@@ -75,20 +74,20 @@ def validate(
 def validate_dataframe(
     df: pd.DataFrame,
     contract: DataContract,
-    extra_validators: Optional[List] = None,
-    reader_last_modified: Optional[float] = None,
-    _now: Optional[datetime] = None,
+    extra_validators: list | None = None,
+    reader_last_modified: float | None = None,
+    _now: datetime | None = None,
 ) -> ValidationResult:
     """Run all validators against a pre-loaded DataFrame.
 
     Designed for unit and integration tests — callers supply the DataFrame directly,
     no storage access needed.
     """
-    now = _now or datetime.now(timezone.utc)
+    now = _now or datetime.now(UTC)
     location = str(contract.dataset.location or contract.dataset.table_name or "")
 
     all_validators = _DEFAULT_VALIDATORS + (extra_validators or [])
-    all_clause_results: List[ClauseResult] = []
+    all_clause_results: list[ClauseResult] = []
 
     for v in all_validators:
         try:

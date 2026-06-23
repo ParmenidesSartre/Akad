@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from akad.models.contract import DataContract
 from akad.models.result import ValidationResult
 from akad.notifiers.base import Notifier
+from akad.notifiers.email_notifier import EmailNotifier
 from akad.notifiers.webhook_notifier import WebhookNotifier
-from akad.notifiers.email_notifier   import EmailNotifier
 
-_DEFAULT_NOTIFIERS: List[Notifier] = [WebhookNotifier(), EmailNotifier()]
+_DEFAULT_NOTIFIERS: list[Notifier] = [WebhookNotifier(), EmailNotifier()]
 
 
 def dispatch_notifications(
     contract: DataContract,
     result: ValidationResult,
-    notifiers: Optional[List[Notifier]] = None,
+    notifiers: list[Notifier] | None = None,
 ) -> None:
     """Send breach notifications via all configured notifiers.
 

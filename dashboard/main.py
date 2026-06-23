@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import httpx
 from fastapi import FastAPI, Query, Request
@@ -32,7 +31,7 @@ async def _get(path: str) -> list | dict:
 
 @app.get("/", response_class=HTMLResponse)
 async def overview(request: Request):
-    error: Optional[str] = None
+    error: str | None = None
     contracts: list = []
     results: list = []
 
@@ -59,9 +58,9 @@ async def overview(request: Request):
 
 @app.get("/contracts/{name}", response_class=HTMLResponse)
 async def contract_detail(request: Request, name: str):
-    error: Optional[str] = None
-    detail: Optional[dict] = None
-    detail_json: Optional[str] = None
+    error: str | None = None
+    detail: dict | None = None
+    detail_json: str | None = None
     results: list = []
 
     try:
@@ -83,7 +82,7 @@ async def contract_detail(request: Request, name: str):
 
 @app.get("/breaches", response_class=HTMLResponse)
 async def breaches(request: Request, status: list[str] = Query(default=["BREACH", "ERROR"])):
-    error: Optional[str] = None
+    error: str | None = None
     results: list = []
 
     try:
@@ -104,7 +103,7 @@ async def breaches(request: Request, status: list[str] = Query(default=["BREACH"
 
 @app.get("/discovery", response_class=HTMLResponse)
 async def discovery(request: Request, q: str = ""):
-    error: Optional[str] = None
+    error: str | None = None
     contracts: list = []
 
     try:

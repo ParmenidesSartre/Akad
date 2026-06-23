@@ -9,8 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
-# Test / coverage artifacts
+# Test / coverage / lint artifacts
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 htmlcov/
 .coverage
 *.db

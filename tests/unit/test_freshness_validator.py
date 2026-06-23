@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 
 import pandas as pd
-import pytest
 
 from akad.models.result import ClauseStatus
 from akad.validators.freshness_validator import FreshnessValidator

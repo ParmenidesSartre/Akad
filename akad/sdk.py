@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
+from akad import engine as eng
 from akad.contract_loader import load_contract
 from akad.models.result import OverallStatus, ValidationResult
-from akad import engine as eng
 from akad.notifier import dispatch_notifications
 from akad.registry_client import RegistryClient
 
@@ -29,12 +28,12 @@ class DataContractValidator:
 
     def __init__(
         self,
-        contract_path: Optional[str | Path] = None,
-        contract_name: Optional[str] = None,
-        registry_url: Optional[str] = None,
-        extra_validators: Optional[List] = None,
-        notifiers: Optional[List] = None,
-        _registry_client=None,  # injectable RegistryClient — used in tests
+        contract_path: str | Path | None = None,
+        contract_name: str | None = None,
+        registry_url: str | None = None,
+        extra_validators: list | None = None,
+        notifiers: list | None = None,
+        _registry_client: RegistryClient | None = None,  # injectable — used in tests
     ):
         if contract_path is not None and contract_name is not None:
             raise ValueError("Provide either contract_path or contract_name, not both.")
@@ -42,6 +41,7 @@ class DataContractValidator:
             raise ValueError("One of contract_path or contract_name is required.")
 
         # Resolve which registry client to use
+        self.registry: RegistryClient | None
         if _registry_client is not None:
             self.registry = _registry_client
         elif registry_url:
@@ -54,6 +54,7 @@ class DataContractValidator:
                 raise ValueError("registry_url is required when using contract_name.")
             self.contract = self.registry.get_contract(contract_name)
         else:
+            assert contract_path is not None  # guaranteed by the checks above
             self.contract = load_contract(contract_path)
 
         self.extra_validators = extra_validators or []

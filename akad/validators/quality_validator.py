@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 import pandas as pd
 
 from akad.models.contract import DataContract
@@ -14,9 +12,9 @@ class QualityValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: Optional[float],
-    ) -> List[ClauseResult]:
-        results: List[ClauseResult] = []
+        reader_last_modified: float | None,
+    ) -> list[ClauseResult]:
+        results: list[ClauseResult] = []
 
         for rule in contract.quality:
             if rule.column not in df.columns:

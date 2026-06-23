@@ -166,8 +166,8 @@ def main() -> None:
     write_clean()   # restore clean data at the contract's dataset.location
     _info("Equivalent Python (this is what an Airflow task would run):")
     print(f"    {D}from akad import DataContractValidator")
-    print(f"    result = DataContractValidator(")
-    print(f"        contract_name='daily_sales',      # fetched from registry — no local file")
+    print("    result = DataContractValidator(")
+    print("        contract_name='daily_sales',      # fetched from registry — no local file")
     print(f"        registry_url='{REGISTRY_URL}',")
     print(f"    ).validate(){X}")
 

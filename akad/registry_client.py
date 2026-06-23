@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any
 
 import httpx
 
@@ -12,20 +12,20 @@ log = logging.getLogger(__name__)
 
 
 class RegistryClient:
-    def __init__(self, base_url: str, _http_client: Optional[httpx.Client] = None):
+    def __init__(self, base_url: str, _http_client: httpx.Client | None = None):
         self.base_url = base_url.rstrip("/")
         # Injected client is used in tests (ASGI transport); None → real httpx calls
         self._http = _http_client
 
     # ── internal helpers ──────────────────────────────────────────────────────
 
-    def _get(self, path: str, **kwargs) -> httpx.Response:
+    def _get(self, path: str, **kwargs: Any) -> httpx.Response:
         url = f"{self.base_url}{path}"
         if self._http:
             return self._http.get(url, **kwargs)
         return httpx.get(url, **kwargs)
 
-    def _post(self, path: str, **kwargs) -> httpx.Response:
+    def _post(self, path: str, **kwargs: Any) -> httpx.Response:
         url = f"{self.base_url}{path}"
         if self._http:
             return self._http.post(url, **kwargs)

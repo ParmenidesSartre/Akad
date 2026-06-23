@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel
 class ContractPublishRequest(BaseModel):
     name:    str
     version: str
-    content: Dict[str, Any]
+    content: dict[str, Any]
 
 
 class ContractSummary(BaseModel):
@@ -23,14 +23,14 @@ class ContractSummary(BaseModel):
 
 
 class ContractDetail(ContractSummary):
-    content: Dict[str, Any]
+    content: dict[str, Any]
 
     model_config = {"from_attributes": True}
 
 
 class ClauseResultSchema(BaseModel):
     clause_type:   str
-    clause_target: Optional[str]
+    clause_target: str | None
     status:        str
     expected:      str
     observed:      str
@@ -43,9 +43,9 @@ class ValidationResultRequest(BaseModel):
     dataset_location: str
     validated_at:     datetime
     overall_status:   str
-    row_count:        Optional[int]   = None
-    clause_results:   List[ClauseResultSchema]
-    error_message:    Optional[str]   = None
+    row_count:        int | None   = None
+    clause_results:   list[ClauseResultSchema]
+    error_message:    str | None   = None
 
 
 class ValidationResultSummary(BaseModel):
@@ -55,13 +55,13 @@ class ValidationResultSummary(BaseModel):
     dataset_location: str
     validated_at:     datetime
     overall_status:   str
-    row_count:        Optional[int]
-    error_message:    Optional[str]
+    row_count:        int | None
+    error_message:    str | None
 
     model_config = {"from_attributes": True}
 
 
 class ValidationResultDetail(ValidationResultSummary):
-    clause_results: List[ClauseResultSchema]
+    clause_results: list[ClauseResultSchema]
 
     model_config = {"from_attributes": True}

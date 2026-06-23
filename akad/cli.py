@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 
 from akad.contract_loader import load_contract
+from akad.models.result import ValidationResult
 from akad.registry_client import RegistryClient
-from akad import engine as eng
 
 app = typer.Typer(name="akad", help="Akad — Data Contract Framework CLI", no_args_is_help=True)
 
@@ -17,11 +15,11 @@ app = typer.Typer(name="akad", help="Akad — Data Contract Framework CLI", no_a
 @app.command()
 def validate(
     contract:     Path = typer.Option(..., "--contract", "-c", help="Path to contract YAML"),
-    registry_url: Optional[str] = typer.Option(None, "--registry-url", "-r", help="Registry URL"),
+    registry_url: str | None = typer.Option(None, "--registry-url", "-r", help="Registry URL"),
     output:       str  = typer.Option("text", "--output", "-o", help="Output format: text|json"),
-):
+) -> None:
     """Validate a dataset against its contract."""
-    from akad.sdk import DataContractValidator, DataContractBreachError
+    from akad.sdk import DataContractBreachError, DataContractValidator
 
     try:
         validator = DataContractValidator(
@@ -33,10 +31,10 @@ def validate(
     except DataContractBreachError as exc:
         result = exc.result
         _print_result(result, output)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
     except Exception as exc:
         typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=2) from exc
 
     _print_result(result, output)
     if result.is_breach:
@@ -47,7 +45,7 @@ def validate(
 def publish(
     contract:     Path = typer.Option(..., "--contract", "-c", help="Path to contract YAML"),
     registry_url: str  = typer.Option(..., "--registry-url", "-r", help="Registry URL"),
-):
+) -> None:
     """Publish a contract to the registry."""
     c = load_contract(contract)
     client = RegistryClient(registry_url)
@@ -58,30 +56,29 @@ def publish(
 @app.command()
 def check(
     contract: Path = typer.Option(..., "--contract", "-c", help="Path to contract YAML"),
-):
+) -> None:
     """Validate contract YAML syntax without accessing data."""
     try:
         c = load_contract(contract)
         typer.echo(f"OK  {c.metadata.name} v{c.metadata.version} — contract is valid")
     except Exception as exc:
         typer.echo(f"FAIL  {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command(name="list")
 def list_contracts(
     registry_url: str = typer.Option(..., "--registry-url", "-r", help="Registry URL"),
-):
+) -> None:
     """List all contracts in the registry."""
     import httpx
     try:
         data = httpx.get(f"{registry_url.rstrip('/')}/contracts/", timeout=10).json()
         for c in data:
-            status = c.get("is_current", True)
             typer.echo(f"  {c['name']:40s}  v{c['version']}")
     except Exception as exc:
         typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()
@@ -89,7 +86,7 @@ def history(
     name:         str = typer.Option(..., "--name", "-n", help="Contract name"),
     registry_url: str = typer.Option(..., "--registry-url", "-r", help="Registry URL"),
     limit:        int = typer.Option(20, "--limit", "-l", help="Number of results"),
-):
+) -> None:
     """Show breach history for a contract."""
     import httpx
     try:
@@ -100,10 +97,10 @@ def history(
             typer.echo(f"  {icon} {r['validated_at']}  {r['overall_status']}")
     except Exception as exc:
         typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
 
 
-def _print_result(result, output: str) -> None:
+def _print_result(result: ValidationResult, output: str) -> None:
     if output == "json":
         typer.echo(json.dumps({
             "status":         result.overall_status.value,

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import pandas as pd
-import pytest
-
 from akad.models.result import ClauseStatus
 from akad.validators.volume_validator import VolumeValidator
 from tests.conftest import make_contract, make_transactions_df

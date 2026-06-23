@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from typing import List, Optional
 
 import pandas as pd
 
@@ -15,8 +14,8 @@ class FreshnessValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: Optional[float],
-    ) -> List[ClauseResult]:
+        reader_last_modified: float | None,
+    ) -> list[ClauseResult]:
         if not contract.freshness:
             return []
 

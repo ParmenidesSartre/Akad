@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -33,7 +32,7 @@ def store_result(req: ValidationResultRequest, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=list[ValidationResultSummary])
 def list_results(
-    contract_name: Optional[str] = Query(None),
+    contract_name: str | None = Query(None),
     limit:         int           = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
 ):

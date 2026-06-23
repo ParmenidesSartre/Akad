@@ -7,22 +7,17 @@ Design goals:
 """
 from __future__ import annotations
 
-import os
-import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock
+from typing import Any
 
-import httpx
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
 from akad.models.contract import DataContract
-from akad.models.result import ClauseStatus, OverallStatus, ValidationResult, ClauseResult
-from datetime import datetime, timezone
-
+from akad.models.result import ClauseResult, OverallStatus, ValidationResult
 
 # ─── Contract factory ─────────────────────────────────────────────────────────
 
@@ -33,15 +28,15 @@ def make_contract(
     fmt: str = "parquet",
     location: str = "/tmp/test.parquet",
     on_breach: str = "warn",
-    schema_columns: Optional[List[Dict]] = None,
-    freshness: Optional[Dict] = None,
-    volume: Optional[Dict] = None,
-    quality: Optional[List[Dict]] = None,
-    notifications: Optional[Dict] = None,
-    consumers: Optional[List[Dict]] = None,
+    schema_columns: list[dict] | None = None,
+    freshness: dict | None = None,
+    volume: dict | None = None,
+    quality: list[dict] | None = None,
+    notifications: dict | None = None,
+    consumers: list[dict] | None = None,
 ) -> DataContract:
     """Build a minimal valid DataContract for testing."""
-    raw: Dict[str, Any] = {
+    raw: dict[str, Any] = {
         "apiVersion": "datacontract/v1",
         "kind": "DataContract",
         "metadata": {
@@ -142,14 +137,14 @@ def fixture_contract_path() -> Path:
 def make_validation_result(
     *,
     status: OverallStatus = OverallStatus.COMPLIANT,
-    clauses: Optional[List[ClauseResult]] = None,
+    clauses: list[ClauseResult] | None = None,
     contract_name: str = "test_contract",
 ) -> ValidationResult:
     return ValidationResult(
         contract_name=contract_name,
         contract_version="1.0.0",
         dataset_location="/tmp/test.parquet",
-        validated_at=datetime.now(timezone.utc),
+        validated_at=datetime.now(UTC),
         overall_status=status,
         clause_results=clauses or [],
         row_count=10,
@@ -162,7 +157,7 @@ class RecordingNotifier:
     """Notifier that records calls instead of sending anything. Use in tests."""
 
     def __init__(self):
-        self.calls: List[tuple] = []
+        self.calls: list[tuple] = []
 
     def notify(self, contract: DataContract, result: ValidationResult) -> None:
         self.calls.append((contract, result))
@@ -182,11 +177,12 @@ def registry_client(tmp_path):
     Uses dependency_overrides so the API's get_db dependency uses the same
     test engine — no module reload tricks needed.
     """
+    from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+
     from registry.database import Base, get_db
     from registry.main import app
-    from fastapi.testclient import TestClient
 
     db_file   = tmp_path / "test_registry.db"
     test_engine  = create_engine(

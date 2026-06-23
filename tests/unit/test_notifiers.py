@@ -68,19 +68,18 @@ class TestWebhookNotifier:
 
     def test_http_error_is_swallowed_and_logged(self, caplog):
         contract = make_contract(notifications=WEBHOOK_CFG)
-        with caplog.at_level(logging.WARNING):
-            with patch("akad.notifiers.webhook_notifier.httpx.post",
-                       side_effect=ConnectionError("network down")):
-                WebhookNotifier().notify(contract, _breach_result())  # must not raise
+        with caplog.at_level(logging.WARNING), patch("akad.notifiers.webhook_notifier.httpx.post",
+                   side_effect=ConnectionError("network down")):
+            WebhookNotifier().notify(contract, _breach_result())  # must not raise
         assert "Webhook notification failed" in caplog.text
 
     def test_non_2xx_response_is_swallowed_and_logged(self, caplog):
         contract = make_contract(notifications=WEBHOOK_CFG)
         bad_resp = MagicMock()
         bad_resp.raise_for_status.side_effect = Exception("500 Server Error")
-        with caplog.at_level(logging.WARNING):
-            with patch("akad.notifiers.webhook_notifier.httpx.post", return_value=bad_resp):
-                WebhookNotifier().notify(contract, _breach_result())
+        with caplog.at_level(logging.WARNING), \
+             patch("akad.notifiers.webhook_notifier.httpx.post", return_value=bad_resp):
+            WebhookNotifier().notify(contract, _breach_result())
         assert "Webhook notification failed" in caplog.text
 
 
@@ -138,10 +137,9 @@ class TestEmailNotifier:
 
     def test_smtp_failure_is_swallowed_and_logged(self, caplog):
         contract = make_contract(notifications=EMAIL_CFG)
-        with caplog.at_level(logging.WARNING):
-            with patch("akad.notifiers.email_notifier.smtplib.SMTP",
-                       side_effect=OSError("connection refused")):
-                EmailNotifier().notify(contract, _breach_result())  # must not raise
+        with caplog.at_level(logging.WARNING), patch("akad.notifiers.email_notifier.smtplib.SMTP",
+                   side_effect=OSError("connection refused")):
+            EmailNotifier().notify(contract, _breach_result())  # must not raise
         assert "Email notification failed" in caplog.text
 
 

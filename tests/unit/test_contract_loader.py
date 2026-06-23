@@ -4,7 +4,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-import yaml
+from pydantic import ValidationError
 
 from akad.contract_loader import load_contract
 from akad.models.contract import DataContract
@@ -61,7 +61,7 @@ class TestLoadContractInvalid:
               location: /tmp/x.parquet
             on_breach: warn
         """)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             load_contract(p)
 
     def test_raises_on_invalid_format(self, tmp_path):
@@ -79,7 +79,7 @@ class TestLoadContractInvalid:
               location: /tmp/x.csv
             on_breach: warn
         """)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             load_contract(p)
 
     def test_raises_on_invalid_on_breach(self, tmp_path):
@@ -97,7 +97,7 @@ class TestLoadContractInvalid:
               location: /tmp/x.parquet
             on_breach: maybe   # invalid
         """)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             load_contract(p)
 
     def test_raises_on_missing_file(self, tmp_path):

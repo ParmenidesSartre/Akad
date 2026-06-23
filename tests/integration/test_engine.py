@@ -8,10 +8,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from akad.engine import validate, validate_dataframe
-from akad.models.result import OverallStatus, ClauseStatus
+from akad.models.result import OverallStatus
 from tests.conftest import make_contract, make_transactions_df
 
 

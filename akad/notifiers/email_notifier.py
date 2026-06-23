@@ -4,7 +4,6 @@ import logging
 import os
 import smtplib
 from email.mime.text import MIMEText
-from typing import List
 
 from akad.models.contract import DataContract
 from akad.models.result import ValidationResult
@@ -13,8 +12,8 @@ from akad.notifiers.base import Notifier
 log = logging.getLogger(__name__)
 
 
-def _collect_recipients(contract: DataContract) -> List[str]:
-    recipients: List[str] = []
+def _collect_recipients(contract: DataContract) -> list[str]:
+    recipients: list[str] = []
     recipients.append(contract.metadata.owner.email)
     for consumer in contract.consumers:
         recipients.append(consumer.email)
@@ -25,13 +24,13 @@ def _collect_recipients(contract: DataContract) -> List[str]:
 
 def _build_email_body(contract: DataContract, result: ValidationResult) -> str:
     lines = [
-        f"Akad Breach Alert",
-        f"",
+        "Akad Breach Alert",
+        "",
         f"Contract : {result.contract_name} v{result.contract_version}",
         f"Dataset  : {result.dataset_location}",
         f"Time     : {result.validated_at.isoformat()}",
         f"Rows     : {result.row_count}",
-        f"",
+        "",
         f"Failed Clauses ({len(result.failed_clauses)}):",
     ]
     for c in result.failed_clauses:

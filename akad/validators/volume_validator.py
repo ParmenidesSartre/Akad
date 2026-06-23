@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 import pandas as pd
 
 from akad.models.contract import DataContract
@@ -14,12 +12,12 @@ class VolumeValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: Optional[float],
-    ) -> List[ClauseResult]:
+        reader_last_modified: float | None,
+    ) -> list[ClauseResult]:
         if not contract.volume:
             return []
 
-        results: List[ClauseResult] = []
+        results: list[ClauseResult] = []
         row_count = len(df)
 
         if contract.volume.min_rows is not None:

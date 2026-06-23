@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, List, Optional
+from enum import StrEnum
+from typing import Any
 
 
-class ClauseStatus(str, Enum):
+class ClauseStatus(StrEnum):
     PASS    = "PASS"
     FAIL    = "FAIL"
     SKIPPED = "SKIPPED"
     ERROR   = "ERROR"
 
 
-class OverallStatus(str, Enum):
+class OverallStatus(StrEnum):
     COMPLIANT = "COMPLIANT"
     BREACH    = "BREACH"
     ERROR     = "ERROR"
@@ -22,7 +22,7 @@ class OverallStatus(str, Enum):
 @dataclass
 class ClauseResult:
     clause_type:   str
-    clause_target: Optional[str]
+    clause_target: str | None
     status:        ClauseStatus
     expected:      Any
     observed:      Any
@@ -47,16 +47,16 @@ class ValidationResult:
     dataset_location: str
     validated_at:     datetime
     overall_status:   OverallStatus
-    clause_results:   List[ClauseResult] = field(default_factory=list)
-    row_count:        Optional[int] = None
-    error_message:    Optional[str] = None
+    clause_results:   list[ClauseResult] = field(default_factory=list)
+    row_count:        int | None = None
+    error_message:    str | None = None
 
     @property
     def is_breach(self) -> bool:
         return self.overall_status == OverallStatus.BREACH
 
     @property
-    def failed_clauses(self) -> List[ClauseResult]:
+    def failed_clauses(self) -> list[ClauseResult]:
         return [c for c in self.clause_results if c.status == ClauseStatus.FAIL]
 
     def to_dict(self) -> dict:

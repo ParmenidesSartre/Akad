@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
-class ColumnType(str, Enum):
+class ColumnType(StrEnum):
     STRING    = "string"
     INTEGER   = "integer"
     FLOAT     = "float"
@@ -20,37 +20,37 @@ class ColumnSpec(BaseModel):
     name:           str
     type:           ColumnType
     nullable:       bool = True
-    description:    Optional[str] = None
-    allowed_values: Optional[List[str]] = None
+    description:    str | None = None
+    allowed_values: list[str] | None = None
 
 
 class SchemaSpec(BaseModel):
     enforce_no_extra_columns: bool = False
-    columns: List[ColumnSpec]
+    columns: list[ColumnSpec]
 
 
 class FreshnessSpec(BaseModel):
     max_age_hours: float
-    check_column:  Optional[str] = None
+    check_column:  str | None = None
 
 
 class VolumeSpec(BaseModel):
-    min_rows: Optional[int] = None
-    max_rows: Optional[int] = None
+    min_rows: int | None = None
+    max_rows: int | None = None
 
 
 class QualityRule(BaseModel):
     column:                   str
-    max_null_percentage:      Optional[float] = None
-    max_duplicate_percentage: Optional[float] = None
-    min_value:                Optional[float] = None
-    max_value:                Optional[float] = None
+    max_null_percentage:      float | None = None
+    max_duplicate_percentage: float | None = None
+    min_value:                float | None = None
+    max_value:                float | None = None
 
 
 class ConsumerSpec(BaseModel):
     team:          str
     email:         str
-    slack_webhook: Optional[str] = None
+    slack_webhook: str | None = None
 
 
 class OwnerSpec(BaseModel):
@@ -61,25 +61,25 @@ class OwnerSpec(BaseModel):
 class MetadataSpec(BaseModel):
     name:        str
     version:     str
-    description: Optional[str] = None
+    description: str | None = None
     owner:       OwnerSpec
-    tags:        List[str] = []
+    tags:        list[str] = []
 
 
 class DatasetSpec(BaseModel):
     format:            Literal["parquet", "sql"]
-    location:          Optional[str] = None
-    catalog_uri:       Optional[str] = None
-    catalog_type:      Optional[str] = None
-    namespace:         Optional[str] = None
-    table_name:        Optional[str] = None
-    connection_string: Optional[str] = None
-    partition_column:  Optional[str] = None
+    location:          str | None = None
+    catalog_uri:       str | None = None
+    catalog_type:      str | None = None
+    namespace:         str | None = None
+    table_name:        str | None = None
+    connection_string: str | None = None
+    partition_column:  str | None = None
 
 
 class WebhookSpec(BaseModel):
     url:     str
-    headers: Dict[str, str] = {}
+    headers: dict[str, str] = {}
 
 
 class EmailSpec(BaseModel):
@@ -87,12 +87,12 @@ class EmailSpec(BaseModel):
     smtp_port:         int = 587
     smtp_user:         str
     smtp_password_env: str
-    recipients:        List[str] = []
+    recipients:        list[str] = []
 
 
 class NotificationsSpec(BaseModel):
-    webhook: Optional[WebhookSpec] = None
-    email:   Optional[EmailSpec]   = None
+    webhook: WebhookSpec | None = None
+    email:   EmailSpec | None   = None
 
 
 class DataContract(BaseModel):
@@ -101,11 +101,11 @@ class DataContract(BaseModel):
     metadata:   MetadataSpec
     dataset:    DatasetSpec
     on_breach:  Literal["warn", "fail"] = "warn"
-    consumers:  List[ConsumerSpec]           = []
-    schema_:    Optional[SchemaSpec]         = Field(None, alias="schema")
-    freshness:  Optional[FreshnessSpec]      = None
-    volume:     Optional[VolumeSpec]         = None
-    quality:    List[QualityRule]            = []
-    notifications: Optional[NotificationsSpec] = None
+    consumers:  list[ConsumerSpec]           = []
+    schema_:    SchemaSpec | None         = Field(None, alias="schema")
+    freshness:  FreshnessSpec | None      = None
+    volume:     VolumeSpec | None         = None
+    quality:    list[QualityRule]            = []
+    notifications: NotificationsSpec | None = None
 
     model_config = {"populate_by_name": True}

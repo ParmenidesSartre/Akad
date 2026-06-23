@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 import pandas as pd
 
@@ -15,7 +14,7 @@ class Validator(ABC):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: Optional[float],
-    ) -> List[ClauseResult]:
+        reader_last_modified: float | None,
+    ) -> list[ClauseResult]:
         """Evaluate clauses. Never raise — catch internally and return ERROR ClauseResult."""
         ...

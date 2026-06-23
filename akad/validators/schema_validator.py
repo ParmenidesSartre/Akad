@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 import pandas as pd
 
-from akad.models.contract import DataContract, ColumnType
+from akad.models.contract import ColumnType, DataContract
 from akad.models.result import ClauseResult, ClauseStatus
 from akad.validators.base import Validator
+
 
 def _is_integer_like(s: pd.Series) -> bool:
     """True for real integer dtypes, and for float columns where every
@@ -16,7 +15,7 @@ def _is_integer_like(s: pd.Series) -> bool:
         return True
     if pd.api.types.is_float_dtype(s):
         non_null = s.dropna()
-        return non_null.empty or (non_null % 1 == 0).all()
+        return non_null.empty or bool((non_null % 1 == 0).all())
     return False
 
 
@@ -41,9 +40,9 @@ class SchemaValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: Optional[float],
-    ) -> List[ClauseResult]:
-        results: List[ClauseResult] = []
+        reader_last_modified: float | None,
+    ) -> list[ClauseResult]:
+        results: list[ClauseResult] = []
         if not contract.schema_:
             return results
 

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import pytest
 
-from akad import DataContractValidator, DataContractBreachError
+from akad import DataContractBreachError, DataContractValidator
 from akad.models.result import OverallStatus
-from tests.conftest import RecordingNotifier, make_contract
+from tests.conftest import make_contract
 
 
 class FakeRegistry:
