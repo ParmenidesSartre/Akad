@@ -33,8 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-"Source Code" = "https://github.com/faizalazman/akad-framework"
-"Bug Tracker" = "https://github.com/faizalazman/akad-framework/issues"
+"Source Code"   = "https://github.com/ParmenidesSartre/Akad"
+"Bug Tracker"   = "https://github.com/ParmenidesSartre/Akad/issues"
+"Documentation" = "https://parmenidessartre.github.io/Akad/"
 
 [project.optional-dependencies]
 # pip install akad-framework[registry]  — run the registry server
@@ -74,6 +75,10 @@ dev = [
     "uvicorn[standard]>=0.29",
     # dashboard extras
     "jinja2>=3.1",
+]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
 ]
 
 [tool.pytest.ini_options]

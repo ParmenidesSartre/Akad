@@ -1,0 +1,15 @@
+# API Reference
+
+Auto-generated from docstrings in the source. See [SDK Reference](sdk-reference.md) for narrative usage examples.
+
+::: akad.sdk.DataContractValidator
+
+::: akad.sdk.DataContractBreachError
+
+::: akad.engine.validate
+
+::: akad.engine.validate_dataframe
+
+::: akad.contract_loader.load_contract
+
+::: akad.registry_client.RegistryClient

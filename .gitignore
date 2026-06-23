@@ -14,3 +14,6 @@ wheels/
 htmlcov/
 .coverage
 *.db
+
+# MkDocs build output
+site/

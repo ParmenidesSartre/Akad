@@ -1,0 +1,63 @@
+site_name: Akad
+site_description: A lightweight data contract framework for automated data quality enforcement
+site_url: https://parmenidessartre.github.io/Akad/
+repo_url: https://github.com/ParmenidesSartre/Akad
+repo_name: ParmenidesSartre/Akad
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+            docstring_style: google
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - Workflow: workflow.md
+  - Contract Reference: contract-reference.md
+  - CLI Reference: cli-reference.md
+  - SDK Reference: sdk-reference.md
+  - API Reference: api-reference.md
+  - Architecture: architecture.md
+  - Contributing: contributing.md
