@@ -94,4 +94,25 @@ print(contract_to_yaml_dict(contract))   # dict, ready for yaml.dump()
 
 `generate_contract()` returns a fully-validated `DataContract` — same model the rest of the SDK uses — so it can be passed directly to `validate_dataframe()` without a round-trip through YAML. As with the CLI command, treat the result as a starting point: review `allowed_values` and volume bounds before relying on it.
 
+## `akad.differ` — programmatic breaking-change detection
+
+The same logic behind [`akad diff`](cli-reference.md#akad-diff-flag-breaking-changes-before-you-publish) is available as a library — useful for a pre-merge check that needs to do more than print to a terminal:
+
+```python
+from akad.contract_loader import load_contract
+from akad.differ import DiffSeverity, diff_contracts
+
+old = load_contract("contracts/daily_sales.yaml")
+new = load_contract("contracts/daily_sales.next.yaml")
+
+for entry in diff_contracts(old, new):
+    print(entry.severity, entry.path, entry.message)
+
+breaking = [e for e in diff_contracts(old, new) if e.severity == DiffSeverity.BREAKING]
+if breaking:
+    raise SystemExit(f"{len(breaking)} breaking change(s) — see above")
+```
+
+`diff_contracts()` is a pure function — no I/O, no registry access — so it works equally well on two contracts loaded from files, fetched from the registry via `RegistryClient.get_contract_version(name, version)`, or built in memory (e.g. in a test asserting a proposed change is non-breaking).
+
 For auto-generated signatures and docstrings, see the [API Reference](api-reference.md).

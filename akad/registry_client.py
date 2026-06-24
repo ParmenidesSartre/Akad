@@ -42,6 +42,15 @@ class RegistryClient:
         resp.raise_for_status()
         return DataContract.model_validate(resp.json()["content"])
 
+    def get_contract_version(self, name: str, version: str) -> DataContract:
+        """Fetch a specific historical version of a contract — used by `akad diff`.
+
+        Raises httpx.HTTPStatusError if that version doesn't exist (404).
+        """
+        resp = self._get(f"/contracts/{name}/versions/{version}", timeout=10)
+        resp.raise_for_status()
+        return DataContract.model_validate(resp.json()["content"])
+
     def publish_contract(self, contract: DataContract) -> None:
         payload = {
             "name":    contract.metadata.name,

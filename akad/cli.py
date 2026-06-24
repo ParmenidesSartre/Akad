@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import typer
@@ -8,6 +9,13 @@ import typer
 from akad.contract_loader import load_contract
 from akad.models.result import ValidationResult
 from akad.registry_client import RegistryClient
+
+# Force UTF-8 output so the ✓/✗ icons below don't crash on a non-UTF-8
+# console (e.g. the cp1252 default on many Windows setups) — without this,
+# typer.echo() raises UnicodeEncodeError instead of printing anything.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 app = typer.Typer(name="akad", help="Akad — Data Contract Framework CLI", no_args_is_help=True)
 
@@ -145,6 +153,71 @@ def infer(
         typer.echo(f"Wrote starter contract to {output}")
     else:
         typer.echo(text)
+
+
+@app.command()
+def diff(
+    old_contract: Path | None = typer.Option(None, "--old", help="Old contract YAML path"),
+    new_contract: Path | None = typer.Option(None, "--new", help="New contract YAML path"),
+    name:         str | None = typer.Option(None, "--name", "-n", help="Contract name (compare two registry versions instead of files)"),
+    old_version:  str | None = typer.Option(None, "--old-version", help="Old version (with --name)"),
+    new_version:  str | None = typer.Option(None, "--new-version", help="New version (with --name)"),
+    registry_url: str | None = typer.Option(None, "--registry-url", "-r", help="Registry URL (with --name)"),
+    output:       str = typer.Option("text", "--output", "-o", help="Output format: text|json"),
+) -> None:
+    """Compare two contract versions and flag breaking vs non-breaking changes.
+
+    Either pass two local files (--old/--new), or compare two versions
+    already published to the registry (--name with --old-version,
+    --new-version, and --registry-url).
+    """
+    from akad.differ import DiffSeverity, diff_contracts
+
+    if name:
+        if not (old_version and new_version and registry_url):
+            typer.echo("Error: --name requires --old-version, --new-version, and --registry-url", err=True)
+            raise typer.Exit(code=2)
+    elif not (old_contract and new_contract):
+        typer.echo(
+            "Error: provide --old/--new file paths, or --name with "
+            "--old-version/--new-version/--registry-url",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        if name:
+            assert old_version and new_version and registry_url  # checked above
+            client = RegistryClient(registry_url)
+            old = client.get_contract_version(name, old_version)
+            new = client.get_contract_version(name, new_version)
+        else:
+            assert old_contract and new_contract  # checked above
+            old = load_contract(old_contract)
+            new = load_contract(new_contract)
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    entries = diff_contracts(old, new)
+    breaking = [e for e in entries if e.severity == DiffSeverity.BREAKING]
+
+    if output == "json":
+        typer.echo(json.dumps([
+            {"severity": e.severity.value, "path": e.path, "message": e.message}
+            for e in entries
+        ], indent=2))
+    else:
+        if not entries:
+            typer.echo("No differences detected.")
+        for e in entries:
+            icon = "✗" if e.severity == DiffSeverity.BREAKING else "✓"
+            typer.echo(f"  {icon} {e.severity.value:12s} {e.path}: {e.message}")
+        if entries:
+            typer.echo(f"\n{len(breaking)} breaking, {len(entries) - len(breaking)} non-breaking change(s).")
+
+    if breaking:
+        raise typer.Exit(code=1)
 
 
 @app.command()

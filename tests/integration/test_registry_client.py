@@ -74,6 +74,10 @@ class TestFailureTolerance:
         with pytest.raises(httpx.HTTPError):
             RegistryClient(DEAD_URL).get_contract("daily_sales")
 
+    def test_get_contract_version_propagates_connection_error(self):
+        with pytest.raises(httpx.HTTPError):
+            RegistryClient(DEAD_URL).get_contract_version("daily_sales", "1.0.0")
+
 
 class TestBaseUrlNormalisation:
     def test_trailing_slash_is_stripped(self):

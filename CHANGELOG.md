@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/), versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-06-23
+
+### Added
+- `akad diff` CLI command — compares two contract versions (two local files, or two versions already published to the registry) and classifies every change as breaking or non-breaking for a consumer relying on the old contract
+- `akad.differ` module exposing `diff_contracts()` for programmatic use
+- `RegistryClient.get_contract_version(name, version)` — fetch a specific historical contract version, not just the current one
+
+### Fixed
+- CLI commands using the ✓/✗ status icons (`validate`, `check`, `history`, `diff`) could crash with `UnicodeEncodeError` on a non-UTF-8 console (e.g. the `cp1252` default on many Windows setups); output is now forced to UTF-8
+
 ## [1.1.0] - 2026-06-23
 
 ### Added

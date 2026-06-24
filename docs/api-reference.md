@@ -19,3 +19,9 @@ Auto-generated from docstrings in the source. See [SDK Reference](sdk-reference.
 ::: akad.profiler.generate_contract
 
 ::: akad.profiler.contract_to_yaml_dict
+
+::: akad.differ.diff_contracts
+
+::: akad.differ.DiffEntry
+
+::: akad.differ.DiffSeverity
