@@ -12,7 +12,7 @@ class VolumeValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: float | None,
+        _reader_last_modified: float | None,
     ) -> list[ClauseResult]:
         if not contract.volume:
             return []

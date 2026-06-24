@@ -100,18 +100,23 @@ def _diff_column(path: str, old: ColumnSpec, new: ColumnSpec) -> list[DiffEntry]
 
 
 def _diff_schema(old: DataContract, new: DataContract) -> list[DiffEntry]:
-    entries: list[DiffEntry] = []
     old_cols = {c.name: c for c in (old.schema_.columns if old.schema_ else [])}
     new_cols = {c.name: c for c in (new.schema_.columns if new.schema_ else [])}
 
-    for name in sorted(old_cols.keys() - new_cols.keys()):
-        entries.append(DiffEntry(DiffSeverity.BREAKING, f"schema.columns.{name}", "column removed"))
-    for name in sorted(new_cols.keys() - old_cols.keys()):
-        entries.append(DiffEntry(DiffSeverity.NON_BREAKING, f"schema.columns.{name}", "column added"))
-    for name in sorted(old_cols.keys() & new_cols.keys()):
-        entries.extend(_diff_column(f"schema.columns.{name}", old_cols[name], new_cols[name]))
-
-    return entries
+    removed = [
+        DiffEntry(DiffSeverity.BREAKING, f"schema.columns.{name}", "column removed")
+        for name in sorted(old_cols.keys() - new_cols.keys())
+    ]
+    added = [
+        DiffEntry(DiffSeverity.NON_BREAKING, f"schema.columns.{name}", "column added")
+        for name in sorted(new_cols.keys() - old_cols.keys())
+    ]
+    changed = [
+        entry
+        for name in sorted(old_cols.keys() & new_cols.keys())
+        for entry in _diff_column(f"schema.columns.{name}", old_cols[name], new_cols[name])
+    ]
+    return [*removed, *added, *changed]
 
 
 def _diff_volume(old: DataContract, new: DataContract) -> list[DiffEntry]:
@@ -144,27 +149,28 @@ _QUALITY_BOUND_FIELDS = (
 
 
 def _diff_quality(old: DataContract, new: DataContract) -> list[DiffEntry]:
-    entries: list[DiffEntry] = []
     old_rules = {r.column: r for r in old.quality}
     new_rules = {r.column: r for r in new.quality}
 
-    for col in sorted(old_rules.keys() - new_rules.keys()):
-        entries.append(DiffEntry(DiffSeverity.BREAKING, f"quality.{col}", "quality rule removed"))
-    for col in sorted(new_rules.keys() - old_rules.keys()):
-        entries.append(DiffEntry(DiffSeverity.NON_BREAKING, f"quality.{col}", "quality rule added"))
-
-    for col in sorted(old_rules.keys() & new_rules.keys()):
-        old_rule, new_rule = old_rules[col], new_rules[col]
-        for field, higher_is_looser in _QUALITY_BOUND_FIELDS:
-            e = _bound_diff(
-                f"quality.{col}.{field}",
-                getattr(old_rule, field), getattr(new_rule, field),
-                higher_is_looser=higher_is_looser,
-            )
-            if e:
-                entries.append(e)
-
-    return entries
+    removed = [
+        DiffEntry(DiffSeverity.BREAKING, f"quality.{col}", "quality rule removed")
+        for col in sorted(old_rules.keys() - new_rules.keys())
+    ]
+    added = [
+        DiffEntry(DiffSeverity.NON_BREAKING, f"quality.{col}", "quality rule added")
+        for col in sorted(new_rules.keys() - old_rules.keys())
+    ]
+    changed = [
+        e
+        for col in sorted(old_rules.keys() & new_rules.keys())
+        for field, higher_is_looser in _QUALITY_BOUND_FIELDS
+        if (e := _bound_diff(
+            f"quality.{col}.{field}",
+            getattr(old_rules[col], field), getattr(new_rules[col], field),
+            higher_is_looser=higher_is_looser,
+        )) is not None
+    ]
+    return [*removed, *added, *changed]
 
 
 def diff_contracts(old: DataContract, new: DataContract) -> list[DiffEntry]:

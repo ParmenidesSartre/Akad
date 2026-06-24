@@ -13,16 +13,13 @@ log = logging.getLogger(__name__)
 
 
 def _collect_recipients(contract: DataContract) -> list[str]:
-    recipients: list[str] = []
-    recipients.append(contract.metadata.owner.email)
-    for consumer in contract.consumers:
-        recipients.append(consumer.email)
+    recipients = [contract.metadata.owner.email, *(c.email for c in contract.consumers)]
     if contract.notifications and contract.notifications.email:
         recipients.extend(contract.notifications.email.recipients)
     return list(dict.fromkeys(recipients))  # deduplicate, preserve order
 
 
-def _build_email_body(contract: DataContract, result: ValidationResult) -> str:
+def _build_email_body(result: ValidationResult) -> str:
     lines = [
         "Akad Breach Alert",
         "",
@@ -47,7 +44,7 @@ class EmailNotifier(Notifier):
         recipients = _collect_recipients(contract)
         if not recipients:
             return
-        body = _build_email_body(contract, result)
+        body = _build_email_body(result)
         try:
             msg = MIMEText(body)
             msg["Subject"] = f"[Akad BREACH] {contract.metadata.name} v{contract.metadata.version}"

@@ -12,7 +12,7 @@ from tests.conftest import make_contract, make_transactions_df
 class ExplodingValidator:
     """Validator that always raises — simulates a buggy custom plugin."""
 
-    def validate(self, df, contract, reader_last_modified):
+    def validate(self, _df, _contract, _reader_last_modified):
         raise RuntimeError("validator bug")
 
 
@@ -38,7 +38,7 @@ class TestEngineReadErrors:
 
     def test_last_modified_failure_is_tolerated(self, tmp_parquet, monkeypatch):
         """A get_last_modified error must not fail the run — freshness just skips."""
-        def boom(self, spec):
+        def boom(*_args):
             raise OSError("stat failed")
 
         monkeypatch.setattr(ParquetReader, "get_last_modified", boom)

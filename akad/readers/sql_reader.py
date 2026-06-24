@@ -23,10 +23,20 @@ class SQLReader(DataReader):
             raise NotImplementedError("SQL freshness requires partition_column in dataset spec")
         if spec.connection_string is None:
             raise DataReadError("SQL dataset spec is missing 'connection_string'")
+        if spec.table_name is None:
+            raise DataReadError("SQL dataset spec is missing 'table_name'")
+        partition_column, table_name = spec.partition_column, spec.table_name
+
         engine = create_engine(spec.connection_string)
         with engine.connect() as conn:
+            # Column/table names can't be bound parameters in standard SQL, so we
+            # quote them through the dialect's own identifier preparer instead —
+            # this escapes special characters and reserved words the same way
+            # SQLAlchemy's query builder would, rather than interpolating raw text.
+            quoted_column = conn.dialect.identifier_preparer.quote(partition_column)
+            quoted_table = conn.dialect.identifier_preparer.quote(table_name)
             result = conn.execute(
-                text(f"SELECT MAX({spec.partition_column}) FROM {spec.table_name}")
+                text(f"SELECT MAX({quoted_column}) FROM {quoted_table}")  # noqa: S608
             )
             val = result.scalar()
             if val is None:

@@ -535,4 +535,4 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 
-*akad-framework v1.2.0*
+*akad-framework v1.2.1*

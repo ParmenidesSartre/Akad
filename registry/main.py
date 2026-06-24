@@ -9,7 +9,7 @@ from registry.routers import contracts, health, results
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     create_tables()
     yield
 

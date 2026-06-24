@@ -161,7 +161,7 @@ def contract_to_yaml_dict(contract: DataContract) -> dict[str, Any]:
     JSON-coerces enums so PyYAML doesn't choke on a StrEnum subclass.
     """
     d: dict[str, Any] = {
-        "apiVersion": contract.apiVersion,
+        "apiVersion": contract.api_version,
         "kind": contract.kind,
         "metadata": {
             "name": contract.metadata.name,

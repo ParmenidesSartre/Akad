@@ -40,7 +40,7 @@ class SchemaValidator(Validator):
         self,
         df: pd.DataFrame,
         contract: DataContract,
-        reader_last_modified: float | None,
+        _reader_last_modified: float | None,
     ) -> list[ClauseResult]:
         results: list[ClauseResult] = []
         if not contract.schema_:
