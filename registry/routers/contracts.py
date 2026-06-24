@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -10,6 +11,14 @@ from registry.models import ContractRecord
 from registry.schemas import ContractDetail, ContractPublishRequest, ContractSummary
 
 router = APIRouter()
+
+
+def _get_or_404(db: Session, *filters: Any, detail: str) -> ContractRecord:
+    record = db.query(ContractRecord).filter(*filters).first()
+    if not record:
+        raise HTTPException(status_code=404, detail=detail)
+    record.content = json.loads(record.content)  # type: ignore[assignment]
+    return record
 
 
 @router.post("/", status_code=201, response_model=ContractSummary)
@@ -39,15 +48,10 @@ def list_contracts(db: Session = Depends(get_db)):
 
 @router.get("/{name}", response_model=ContractDetail)
 def get_contract(name: str, db: Session = Depends(get_db)):
-    record = (
-        db.query(ContractRecord)
-        .filter(ContractRecord.name == name, ContractRecord.is_current.is_(True))
-        .first()
+    return _get_or_404(
+        db, ContractRecord.name == name, ContractRecord.is_current.is_(True),
+        detail=f'Contract "{name}" not found',
     )
-    if not record:
-        raise HTTPException(status_code=404, detail=f'Contract "{name}" not found')
-    record.content = json.loads(record.content)  # type: ignore[assignment]
-    return record
 
 
 @router.get("/{name}/versions", response_model=list[ContractSummary])
@@ -62,12 +66,7 @@ def list_versions(name: str, db: Session = Depends(get_db)):
 
 @router.get("/{name}/versions/{version}", response_model=ContractDetail)
 def get_version(name: str, version: str, db: Session = Depends(get_db)):
-    record = (
-        db.query(ContractRecord)
-        .filter(ContractRecord.name == name, ContractRecord.version == version)
-        .first()
+    return _get_or_404(
+        db, ContractRecord.name == name, ContractRecord.version == version,
+        detail=f'Contract "{name}" v{version} not found',
     )
-    if not record:
-        raise HTTPException(status_code=404, detail=f'Contract "{name}" v{version} not found')
-    record.content = json.loads(record.content)  # type: ignore[assignment]
-    return record

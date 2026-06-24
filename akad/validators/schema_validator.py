@@ -63,53 +63,35 @@ class SchemaValidator(Validator):
             series = df[col.name]
 
             type_ok = _TYPE_CHECKS[col.type](series)
-            results.append(ClauseResult(
-                clause_type="schema.column_type",
-                clause_target=col.name,
-                status=ClauseStatus.PASS if type_ok else ClauseStatus.FAIL,
-                expected=col.type.value,
-                observed=str(series.dtype),
-                message="" if type_ok else
-                        f'Column "{col.name}" type mismatch: expected {col.type.value}, got {series.dtype}',
+            results.append(ClauseResult.check(
+                "schema.column_type", col.name, type_ok,
+                expected=col.type.value, observed=str(series.dtype),
+                fail_message=f'Column "{col.name}" type mismatch: expected {col.type.value}, got {series.dtype}',
             ))
 
             if not col.nullable:
                 null_count = int(series.isnull().sum())
-                null_ok = null_count == 0
-                results.append(ClauseResult(
-                    clause_type="schema.column_nullable",
-                    clause_target=col.name,
-                    status=ClauseStatus.PASS if null_ok else ClauseStatus.FAIL,
-                    expected="non-nullable (0 nulls)",
-                    observed=f"{null_count} nulls found",
-                    message="" if null_ok else
-                            f'Column "{col.name}" has {null_count} null value(s) but is declared non-nullable',
+                results.append(ClauseResult.check(
+                    "schema.column_nullable", col.name, null_count == 0,
+                    expected="non-nullable (0 nulls)", observed=f"{null_count} nulls found",
+                    fail_message=f'Column "{col.name}" has {null_count} null value(s) but is declared non-nullable',
                 ))
 
             if col.allowed_values is not None:
-                invalid = set(series.dropna().unique()) - set(col.allowed_values)
-                av_ok = len(invalid) == 0
-                results.append(ClauseResult(
-                    clause_type="schema.allowed_values",
-                    clause_target=col.name,
-                    status=ClauseStatus.PASS if av_ok else ClauseStatus.FAIL,
-                    expected=f"values in {col.allowed_values}",
-                    observed=f"unexpected values: {sorted(invalid)[:10]}",
-                    message="" if av_ok else
-                            f'Column "{col.name}" contains values not in allowed list: {sorted(invalid)[:10]}',
+                invalid = sorted(set(series.dropna().unique()) - set(col.allowed_values))[:10]
+                results.append(ClauseResult.check(
+                    "schema.allowed_values", col.name, not invalid,
+                    expected=f"values in {col.allowed_values}", observed=f"unexpected values: {invalid}",
+                    fail_message=f'Column "{col.name}" contains values not in allowed list: {invalid}',
                 ))
 
         if contract.schema_.enforce_no_extra_columns:
             expected_cols = {c.name for c in contract.schema_.columns}
-            extra = actual_cols - expected_cols
-            extra_ok = len(extra) == 0
-            results.append(ClauseResult(
-                clause_type="schema.no_extra_columns",
-                clause_target=None,
-                status=ClauseStatus.PASS if extra_ok else ClauseStatus.FAIL,
-                expected="no extra columns",
-                observed=f"extra columns: {sorted(extra)}",
-                message="" if extra_ok else f"Unexpected columns found: {sorted(extra)}",
+            extra = sorted(actual_cols - expected_cols)
+            results.append(ClauseResult.check(
+                "schema.no_extra_columns", None, not extra,
+                expected="no extra columns", observed=f"extra columns: {extra}",
+                fail_message=f"Unexpected columns found: {extra}",
             ))
 
         return results

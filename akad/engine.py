@@ -26,6 +26,17 @@ _DEFAULT_VALIDATORS = [
 ]
 
 
+def _error_result(contract: DataContract, location: str, now: datetime, message: str) -> ValidationResult:
+    return ValidationResult(
+        contract_name=contract.metadata.name,
+        contract_version=contract.metadata.version,
+        dataset_location=location,
+        validated_at=now,
+        overall_status=OverallStatus.ERROR,
+        error_message=message,
+    )
+
+
 def validate(
     contract: DataContract,
     extra_validators: list | None = None,
@@ -40,28 +51,14 @@ def validate(
 
     reader_cls = _READERS.get(contract.dataset.format)
     if not reader_cls:
-        return ValidationResult(
-            contract_name=contract.metadata.name,
-            contract_version=contract.metadata.version,
-            dataset_location=location,
-            validated_at=now,
-            overall_status=OverallStatus.ERROR,
-            error_message=f"Unsupported dataset format: {contract.dataset.format}",
-        )
+        return _error_result(contract, location, now, f"Unsupported dataset format: {contract.dataset.format}")
 
     reader = reader_cls()
 
     try:
         df = reader.read(contract.dataset)
     except Exception as exc:
-        return ValidationResult(
-            contract_name=contract.metadata.name,
-            contract_version=contract.metadata.version,
-            dataset_location=location,
-            validated_at=now,
-            overall_status=OverallStatus.ERROR,
-            error_message=f"Failed to read dataset: {exc}",
-        )
+        return _error_result(contract, location, now, f"Failed to read dataset: {exc}")
 
     try:
         last_modified: float | None = reader.get_last_modified(contract.dataset)

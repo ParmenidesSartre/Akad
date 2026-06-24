@@ -39,6 +39,27 @@ class ClauseResult:
             "message":       self.message,
         }
 
+    @classmethod
+    def check(
+        cls,
+        clause_type: str,
+        clause_target: str | None,
+        ok: bool,
+        *,
+        expected: Any,
+        observed: Any,
+        fail_message: str = "",
+    ) -> ClauseResult:
+        """Build a PASS/FAIL clause — the shape every validator repeats."""
+        return cls(
+            clause_type=clause_type,
+            clause_target=clause_target,
+            status=ClauseStatus.PASS if ok else ClauseStatus.FAIL,
+            expected=expected,
+            observed=observed,
+            message="" if ok else fail_message,
+        )
+
 
 @dataclass
 class ValidationResult:

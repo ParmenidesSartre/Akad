@@ -53,14 +53,9 @@ class FreshnessValidator(Validator):
             )]
 
         age_hours = (now - last_ts) / 3600
-        fresh = age_hours <= spec.max_age_hours
 
-        return [ClauseResult(
-            clause_type="freshness",
-            clause_target=None,
-            status=ClauseStatus.PASS if fresh else ClauseStatus.FAIL,
-            expected=f"age <= {spec.max_age_hours}h (via {method})",
-            observed=f"age = {age_hours:.1f}h",
-            message="" if fresh else
-                    f"Dataset is {age_hours:.1f}h old, exceeds max_age_hours={spec.max_age_hours}",
+        return [ClauseResult.check(
+            "freshness", None, age_hours <= spec.max_age_hours,
+            expected=f"age <= {spec.max_age_hours}h (via {method})", observed=f"age = {age_hours:.1f}h",
+            fail_message=f"Dataset is {age_hours:.1f}h old, exceeds max_age_hours={spec.max_age_hours}",
         )]
