@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from akad.contract_loader import load_contract
+from akad.models.contract import DataContract
 from akad.models.result import ValidationResult
 from akad.registry_client import RegistryClient
 
@@ -155,6 +156,41 @@ def infer(
         typer.echo(text)
 
 
+def _load_diff_contracts(
+    old_contract: Path | None,
+    new_contract: Path | None,
+    name: str | None,
+    old_version: str | None,
+    new_version: str | None,
+    registry_url: str | None,
+) -> tuple[DataContract, DataContract]:
+    """Resolve `akad diff`'s two loading modes into a pair of contracts."""
+    if name:
+        if not (old_version and new_version and registry_url):
+            typer.echo("Error: --name requires --old-version, --new-version, and --registry-url", err=True)
+            raise typer.Exit(code=2)
+    elif not (old_contract and new_contract):
+        typer.echo(
+            "Error: provide --old/--new file paths, or --name with "
+            "--old-version/--new-version/--registry-url",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        if name:
+            if not (old_version and new_version and registry_url):
+                raise AssertionError("unreachable — checked above")
+            client = RegistryClient(registry_url)
+            return client.get_contract_version(name, old_version), client.get_contract_version(name, new_version)
+        if not (old_contract and new_contract):
+            raise AssertionError("unreachable — checked above")
+        return load_contract(old_contract), load_contract(new_contract)
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
 @app.command()
 def diff(
     old_contract: Path | None = typer.Option(None, "--old", help="Old contract YAML path"),
@@ -173,32 +209,7 @@ def diff(
     """
     from akad.differ import DiffSeverity, diff_contracts
 
-    if name:
-        if not (old_version and new_version and registry_url):
-            typer.echo("Error: --name requires --old-version, --new-version, and --registry-url", err=True)
-            raise typer.Exit(code=2)
-    elif not (old_contract and new_contract):
-        typer.echo(
-            "Error: provide --old/--new file paths, or --name with "
-            "--old-version/--new-version/--registry-url",
-            err=True,
-        )
-        raise typer.Exit(code=2)
-
-    try:
-        if name:
-            assert old_version and new_version and registry_url  # checked above
-            client = RegistryClient(registry_url)
-            old = client.get_contract_version(name, old_version)
-            new = client.get_contract_version(name, new_version)
-        else:
-            assert old_contract and new_contract  # checked above
-            old = load_contract(old_contract)
-            new = load_contract(new_contract)
-    except Exception as exc:
-        typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=2) from exc
-
+    old, new = _load_diff_contracts(old_contract, new_contract, name, old_version, new_version, registry_url)
     entries = diff_contracts(old, new)
     breaking = [e for e in entries if e.severity == DiffSeverity.BREAKING]
 

@@ -71,7 +71,7 @@ def wait_for_registry(max_wait: int = 120) -> None:
             if r.json().get("status") == "ok":
                 print(f" {G}ready{X}")
                 return
-        except Exception:
+        except Exception:  # noqa: S110 — expected during startup (connection refused until the registry is up)
             pass
         print(".", end="", flush=True)
         time.sleep(2)
@@ -83,7 +83,7 @@ def wait_for_registry(max_wait: int = 120) -> None:
 
 def run(args: list[str], *, allow_nonzero: bool = False) -> int:
     _cmd(" ".join(args))
-    r = subprocess.run(args, capture_output=True, text=True)
+    r = subprocess.run(args, capture_output=True, text=True)  # noqa: S603 — args are hardcoded in this file, never external input
     output = (r.stdout + r.stderr).strip()
     for line in output.splitlines():
         print(f"    {line}")
@@ -118,7 +118,7 @@ def write_breached() -> None:
     # 5 null sale_ids — violates max_null_percentage: 0.0
     df.loc[0:4, "sale_id"] = None
     pq.write_table(pa.Table.from_pandas(df), str(DATA_PATH))
-    _ok(f"Written {DATA_PATH}  ({n} rows, injected breaches: 5× null sale_id, 10× JPY currency)")
+    _ok(f"Written {DATA_PATH}  ({n} rows, injected breaches: 5× null sale_id, 10× JPY currency)")  # noqa: RUF001 — decorative output text, not an identifier
 
 
 # ── main ──────────────────────────────────────────────────────────────────────

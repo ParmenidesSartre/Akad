@@ -19,7 +19,7 @@ class FakeRegistry:
         self.contract = contract
         self.posted = []
 
-    def get_contract(self, name):
+    def get_contract(self, _name):
         return self.contract
 
     def post_validation_result(self, result):

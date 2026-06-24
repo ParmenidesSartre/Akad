@@ -85,6 +85,12 @@ class TestSQLReader:
         with pytest.raises(NotImplementedError, match="partition_column"):
             SQLReader().get_last_modified(sqlite_spec)
 
+    def test_last_modified_missing_table_name_raises_data_read_error(self, tmp_path):
+        conn_str = f"sqlite:///{tmp_path / 'no_table.db'}"
+        spec = DatasetSpec(format="sql", connection_string=conn_str, partition_column="updated_at")
+        with pytest.raises(DataReadError, match="missing 'table_name'"):
+            SQLReader().get_last_modified(spec)
+
     def test_last_modified_missing_connection_string_raises_data_read_error(self):
         spec = DatasetSpec(format="sql", table_name="t", partition_column="updated_at")
         with pytest.raises(DataReadError, match="missing 'connection_string'"):

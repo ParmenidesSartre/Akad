@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "akad-framework"
-version         = "1.2.0"
+version         = "1.2.1"
 description     = "Akad — a lightweight data contract framework for automated data quality enforcement in lakehouse pipelines"
 readme          = "README.md"
 license         = "MIT"
@@ -107,10 +107,18 @@ target-version = "py312"
 line-length = 110
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "S", "RUF", "PERF", "ARG", "C901", "PTH", "N"]
 ignore = [
     "E501",  # long lines exist in deliberately column-aligned declarations
     "B008",  # FastAPI's Depends() and Typer's Option() are designed to be called in defaults
+]
+# D (pydocstyle) is deliberately not enabled — this codebase documents intent
+# through naming and type hints, not a docstring on every test/model/function.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",  # bare `assert` is pytest's own idiom, not a stripped-in-prod risk
+    "S108",  # hardcoded /tmp paths are just placeholder field values, never written to
 ]
 
 [tool.mypy]

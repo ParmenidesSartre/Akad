@@ -12,21 +12,21 @@ class TestNullPercentage:
         df = pd.DataFrame({"col": ["a", "b", None, "d"]})  # 25% nulls
         contract = make_contract(quality=[{"column": "col", "max_null_percentage": 50.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.null_percentage"][0]
+        r = next(x for x in results if x.clause_type == "quality.null_percentage")
         assert r.status == ClauseStatus.PASS
 
     def test_fail_when_null_rate_exceeds_limit(self):
         df = pd.DataFrame({"col": [None, None, "c"]})  # 66% nulls
         contract = make_contract(quality=[{"column": "col", "max_null_percentage": 0.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.null_percentage"][0]
+        r = next(x for x in results if x.clause_type == "quality.null_percentage")
         assert r.status == ClauseStatus.FAIL
 
     def test_pass_when_zero_nulls_allowed_and_none_present(self):
         df = pd.DataFrame({"col": ["a", "b", "c"]})
         contract = make_contract(quality=[{"column": "col", "max_null_percentage": 0.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.null_percentage"][0]
+        r = next(x for x in results if x.clause_type == "quality.null_percentage")
         assert r.status == ClauseStatus.PASS
 
 
@@ -35,14 +35,14 @@ class TestDuplicatePercentage:
         df = pd.DataFrame({"id": ["A", "B", "C"]})
         contract = make_contract(quality=[{"column": "id", "max_duplicate_percentage": 0.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.duplicate_percentage"][0]
+        r = next(x for x in results if x.clause_type == "quality.duplicate_percentage")
         assert r.status == ClauseStatus.PASS
 
     def test_fail_when_duplicates_exceed_limit(self):
         df = pd.DataFrame({"id": ["A", "A", "C"]})  # ~33% duplicates
         contract = make_contract(quality=[{"column": "id", "max_duplicate_percentage": 0.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.duplicate_percentage"][0]
+        r = next(x for x in results if x.clause_type == "quality.duplicate_percentage")
         assert r.status == ClauseStatus.FAIL
 
 
@@ -58,14 +58,14 @@ class TestValueRange:
         df = pd.DataFrame({"amount": [-5.0, 10.0]})
         contract = make_contract(quality=[{"column": "amount", "min_value": 0.01}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.min_value"][0]
+        r = next(x for x in results if x.clause_type == "quality.min_value")
         assert r.status == ClauseStatus.FAIL
 
     def test_fail_when_max_value_violated(self):
         df = pd.DataFrame({"amount": [100.0, 9999999.0]})
         contract = make_contract(quality=[{"column": "amount", "max_value": 10000.0}])
         results = QualityValidator().validate(df, contract, None)
-        r = [x for x in results if x.clause_type == "quality.max_value"][0]
+        r = next(x for x in results if x.clause_type == "quality.max_value")
         assert r.status == ClauseStatus.FAIL
 
 

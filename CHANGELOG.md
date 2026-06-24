@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/), versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-06-23
+
+Code-quality hardening pass — no new features, no behavior changes for existing users.
+
+### Changed
+- Expanded the `ruff` lint ruleset to include security (`S`), performance (`PERF`), unused-argument (`ARG`), complexity (`C901`), naming (`N`), pathlib (`PTH`), and ruff-specific (`RUF`) checks, with a per-path exception for `tests/` where bare `assert` and placeholder `/tmp/...` paths are the established idiom, not a real risk
+- `DataContract.api_version` renamed from `apiVersion` (still aliased to the `apiVersion` YAML key — the contract format on disk is unchanged) for consistency with every other snake_case field, mirroring the existing `schema_`/`schema` alias
+- `SQLReader.get_last_modified()` now quotes the dynamic column/table identifiers through SQLAlchemy's own `identifier_preparer` instead of raw f-string interpolation, and gained an explicit guard for a missing `table_name`
+- Reduced `akad cli.py`'s `diff` command below the complexity threshold by extracting its argument-validation/loading logic into `_load_diff_contracts()`
+- Various conciseness fixes surfaced by the expanded linting: comprehensions instead of manual append loops in `akad.differ` and the email notifier, `next()` instead of a single-element list slice in tests, dead `contract` parameter removed from `_build_email_body()`
+
 ## [1.2.0] - 2026-06-23
 
 ### Added

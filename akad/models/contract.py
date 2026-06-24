@@ -96,16 +96,16 @@ class NotificationsSpec(BaseModel):
 
 
 class DataContract(BaseModel):
-    apiVersion: Literal["datacontract/v1"]
-    kind:       Literal["DataContract"]
-    metadata:   MetadataSpec
-    dataset:    DatasetSpec
-    on_breach:  Literal["warn", "fail"] = "warn"
-    consumers:  list[ConsumerSpec]           = []
-    schema_:    SchemaSpec | None         = Field(None, alias="schema")
-    freshness:  FreshnessSpec | None      = None
-    volume:     VolumeSpec | None         = None
-    quality:    list[QualityRule]            = []
-    notifications: NotificationsSpec | None = None
+    api_version:   Literal["datacontract/v1"]    = Field(alias="apiVersion")
+    kind:          Literal["DataContract"]
+    metadata:      MetadataSpec
+    dataset:       DatasetSpec
+    on_breach:     Literal["warn", "fail"]       = "warn"
+    consumers:     list[ConsumerSpec]            = []
+    schema_:       SchemaSpec | None             = Field(None, alias="schema")
+    freshness:     FreshnessSpec | None          = None
+    volume:        VolumeSpec | None             = None
+    quality:       list[QualityRule]             = []
+    notifications: NotificationsSpec | None      = None
 
     model_config = {"populate_by_name": True}

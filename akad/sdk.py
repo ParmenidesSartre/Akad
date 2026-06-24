@@ -54,7 +54,8 @@ class DataContractValidator:
                 raise ValueError("registry_url is required when using contract_name.")
             self.contract = self.registry.get_contract(contract_name)
         else:
-            assert contract_path is not None  # guaranteed by the checks above
+            if contract_path is None:
+                raise AssertionError("unreachable — guaranteed by the checks above")
             self.contract = load_contract(contract_path)
 
         self.extra_validators = extra_validators or []

@@ -7,7 +7,7 @@ from typing import Any
 
 
 class ClauseStatus(StrEnum):
-    PASS    = "PASS"
+    PASS    = "PASS"  # noqa: S105 — enum member, not a credential
     FAIL    = "FAIL"
     SKIPPED = "SKIPPED"
     ERROR   = "ERROR"

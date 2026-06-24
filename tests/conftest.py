@@ -189,7 +189,7 @@ def registry_client(tmp_path):
         f"sqlite:///{db_file}",
         connect_args={"check_same_thread": False},
     )
-    TestSession = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
+    TestSession = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)  # noqa: N806 — SQLAlchemy's own convention for a session factory
     Base.metadata.create_all(bind=test_engine)
 
     def override_get_db():

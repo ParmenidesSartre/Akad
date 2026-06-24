@@ -12,6 +12,6 @@ def load_contract(path: str | Path) -> DataContract:
 
     Raises pydantic.ValidationError with clear messages if the file is invalid.
     """
-    with open(path, encoding="utf-8") as fh:
+    with Path(path).open(encoding="utf-8") as fh:
         raw = yaml.safe_load(fh)
     return DataContract.model_validate(raw)
