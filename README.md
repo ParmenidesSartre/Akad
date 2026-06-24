@@ -95,6 +95,7 @@ When a producer pipeline changes a dataset (renames a column, drops rows, adds b
 ### CLI
 
 - `akad infer` — profile an existing dataset and scaffold a starter contract YAML
+- `akad diff` — compare two contract versions, flag breaking vs non-breaking changes (CI-friendly)
 - `akad check` — parse and validate YAML syntax without touching data (CI-safe)
 - `akad publish` — register a contract version
 - `akad validate` — run full validation, exit 1 on breach (CI-friendly)
@@ -331,6 +332,7 @@ notifications:
 
 ```
 akad infer     --name NAME      [--format parquet|sql]  [--location PATH | --connection-string URL --table-name NAME]  [--output PATH]
+akad diff      --old PATH --new PATH | --name NAME --old-version V --new-version V --registry-url URL  [--output text|json]
 akad check     --contract PATH
 akad publish   --contract PATH  --registry-url URL
 akad validate  --contract PATH  [--registry-url URL]  [--output text|json]
@@ -349,6 +351,28 @@ akad infer --name daily_sales --location data/daily_sales.parquet \
 ```
 
 This is a **starting point, not a finished contract** — every inferred rule reflects only what the data looked like when profiled, not the business rules it's supposed to follow. Review and tighten it (especially `allowed_values` and volume bounds) before relying on it in CI or production.
+
+### `akad diff` — flag breaking changes before you publish
+
+Compares two contract versions and classifies every change as **breaking** or **non-breaking** for a consumer relying on the old contract's guarantees — the rule throughout is that *loosening* a guarantee (removing a column, allowing a new enum value, widening a quality bound) is breaking, while *tightening* one is not.
+
+```bash
+# Two local files — e.g. in a pre-merge CI check
+akad diff --old contracts/daily_sales.yaml --new contracts/daily_sales.next.yaml
+
+# Two versions already published to the registry
+akad diff --name daily_sales --old-version 1.0.0 --new-version 1.1.0 --registry-url http://localhost:8000
+```
+
+```
+  ✗ BREAKING      schema.columns.region: column removed
+  ✗ BREAKING      schema.columns.currency_code.allowed_values: now allows additional values: ['JPY']
+  ✓ NON_BREAKING  volume.min_rows: changed from 500 to 1000
+
+2 breaking, 1 non-breaking change(s).
+```
+
+Exits `1` if any breaking change is found — drop it into CI to catch contract changes that would break a downstream consumer before they're published.
 
 ---
 
@@ -511,4 +535,4 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 
-*akad-framework v1.1.0*
+*akad-framework v1.2.0*

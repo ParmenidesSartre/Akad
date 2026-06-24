@@ -187,6 +187,100 @@ class TestInfer:
         assert "unsupported format" in result.output
 
 
+def _write_volume_contract(tmp_path, filename, *, min_rows):
+    path = tmp_path / filename
+    path.write_text(f"""\
+apiVersion: datacontract/v1
+kind: DataContract
+metadata:
+  name: cli_sales
+  version: "1.0.0"
+  owner:
+    team: Test Team
+    email: test@example.com
+dataset:
+  format: parquet
+  location: /tmp/x.parquet
+on_breach: warn
+volume:
+  min_rows: {min_rows}
+""")
+    return path
+
+
+class TestDiff:
+    def test_no_breaking_changes_exits_zero(self, tmp_path):
+        old = _write_volume_contract(tmp_path, "old.yaml", min_rows=500)
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=1000)  # tightened
+        result = runner.invoke(app, ["diff", "--old", str(old), "--new", str(new)])
+        assert result.exit_code == 0
+        assert "NON_BREAKING" in result.output
+
+    def test_breaking_change_exits_one(self, tmp_path):
+        old = _write_volume_contract(tmp_path, "old.yaml", min_rows=1000)
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)  # loosened
+        result = runner.invoke(app, ["diff", "--old", str(old), "--new", str(new)])
+        assert result.exit_code == 1
+        assert "BREAKING" in result.output
+        assert "breaking" in result.output  # summary line
+
+    def test_no_differences_message(self, tmp_path):
+        old = _write_volume_contract(tmp_path, "old.yaml", min_rows=500)
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        result = runner.invoke(app, ["diff", "--old", str(old), "--new", str(new)])
+        assert result.exit_code == 0
+        assert "No differences detected" in result.output
+
+    def test_json_output(self, tmp_path):
+        old = _write_volume_contract(tmp_path, "old.yaml", min_rows=1000)
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        result = runner.invoke(app, [
+            "diff", "--old", str(old), "--new", str(new), "--output", "json",
+        ])
+        payload = json.loads(result.output)
+        assert payload[0]["severity"] == "BREAKING"
+        assert payload[0]["path"] == "volume.min_rows"
+
+    def test_requires_old_and_new_or_registry_args(self):
+        result = runner.invoke(app, ["diff"])
+        assert result.exit_code == 2
+        assert "provide --old/--new" in result.output
+
+    def test_name_mode_requires_all_registry_args(self):
+        result = runner.invoke(app, ["diff", "--name", "x", "--old-version", "1.0.0"])
+        assert result.exit_code == 2
+        assert "requires --old-version, --new-version, and --registry-url" in result.output
+
+    def test_compares_two_registry_versions(self, tmp_path):
+        old = _write_volume_contract(tmp_path, "old.yaml", min_rows=1000)
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        from akad.contract_loader import load_contract
+
+        with patch("akad.cli.RegistryClient") as client_cls:
+            instance = client_cls.return_value
+            instance.get_contract_version.side_effect = [
+                load_contract(old), load_contract(new),
+            ]
+            result = runner.invoke(app, [
+                "diff", "--name", "cli_sales",
+                "--old-version", "1.0.0", "--new-version", "2.0.0",
+                "--registry-url", "http://localhost:8000",
+            ])
+
+        assert result.exit_code == 1
+        assert "BREAKING" in result.output
+        client_cls.assert_called_once_with("http://localhost:8000")
+        instance.get_contract_version.assert_any_call("cli_sales", "1.0.0")
+        instance.get_contract_version.assert_any_call("cli_sales", "2.0.0")
+
+    def test_unloadable_old_contract_exits_two(self, tmp_path):
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        result = runner.invoke(app, [
+            "diff", "--old", str(tmp_path / "missing.yaml"), "--new", str(new),
+        ])
+        assert result.exit_code == 2
+
+
 class TestHistory:
     def test_shows_validation_runs(self):
         resp = MagicMock()

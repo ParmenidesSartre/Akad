@@ -60,6 +60,10 @@ A read-only FastAPI + Jinja2 application, styled with Tailwind via CDN (no front
 
 Not a deployed component — a dev-time tool used by `akad infer`. Reads a dataset through the same reader layer the engine uses, then profiles it to scaffold a starter contract: inferred column types, `allowed_values` for low-cardinality string columns, quality rules that mirror the validators' own formulas (so the contract is self-consistent against the data it was generated from), and a volume band around the observed row count. See the [SDK Reference](sdk-reference.md#akadprofiler-programmatic-contract-inference) for the public functions.
 
+### Differ (`akad.differ`)
+
+Also not a deployed component — a pure, I/O-free comparison used by `akad diff`. Takes two already-loaded `DataContract` objects (from files or `RegistryClient.get_contract_version()`) and classifies every change as breaking or non-breaking for a consumer relying on the old contract: removing a column or loosening a numeric bound (a higher `max_rows`, a lower `min_value`, a wider `allowed_values` set) is breaking; tightening one is not. See the [SDK Reference](sdk-reference.md#akaddiffer-programmatic-breaking-change-detection) for the full rule table.
+
 ## Design decisions worth knowing
 
 - **`on_breach: warn` vs `on_breach: fail`** — warn records the breach and lets the pipeline continue (detection); fail raises `DataContractBreachError`, which in Airflow propagates into a failed task and skips downstream tasks (prevention). Both modes post the same `ValidationResult` to the registry.

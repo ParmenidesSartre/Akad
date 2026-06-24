@@ -1,0 +1,183 @@
+"""Compare two contract versions and classify each change as breaking or
+non-breaking for a consumer relying on the OLD contract's guarantees.
+
+`akad diff` (see akad.cli) wraps this module for command-line use.
+
+The rule applied throughout: loosening a producer guarantee is breaking
+(a consumer that relied on the old, stricter guarantee may now fail);
+tightening one is non-breaking (anything that satisfied the new, stricter
+guarantee also satisfied the old, looser one).
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+from akad.models.contract import ColumnSpec, DataContract
+
+
+class DiffSeverity(StrEnum):
+    BREAKING     = "BREAKING"
+    NON_BREAKING = "NON_BREAKING"
+
+
+@dataclass
+class DiffEntry:
+    severity: DiffSeverity
+    path:     str
+    message:  str
+
+
+def _bound_diff(
+    path: str,
+    old: float | None,
+    new: float | None,
+    *,
+    higher_is_looser: bool,
+) -> DiffEntry | None:
+    """Compare an optional numeric bound.
+
+    *higher_is_looser* is True for an upper-bound-style field (max_rows,
+    max_value, max_age_hours — a bigger number permits more), and False for
+    a lower-bound-style field (min_rows, min_value — a bigger number
+    permits less).
+    """
+    if old == new:
+        return None
+    if old is None:
+        bound = f"<= {new}" if higher_is_looser else f">= {new}"
+        return DiffEntry(DiffSeverity.NON_BREAKING, path, f"added constraint ({bound})")
+    if new is None:
+        return DiffEntry(DiffSeverity.BREAKING, path, f"removed constraint (was {old})")
+
+    loosened = (new > old) if higher_is_looser else (new < old)
+    severity = DiffSeverity.BREAKING if loosened else DiffSeverity.NON_BREAKING
+    return DiffEntry(severity, path, f"changed from {old} to {new}")
+
+
+def _diff_column(path: str, old: ColumnSpec, new: ColumnSpec) -> list[DiffEntry]:
+    entries: list[DiffEntry] = []
+
+    if old.type != new.type:
+        entries.append(DiffEntry(
+            DiffSeverity.BREAKING, f"{path}.type",
+            f"type changed from {old.type.value} to {new.type.value}",
+        ))
+
+    if old.nullable != new.nullable:
+        if new.nullable:
+            entries.append(DiffEntry(
+                DiffSeverity.BREAKING, f"{path}.nullable", "became nullable (was guaranteed non-null)",
+            ))
+        else:
+            entries.append(DiffEntry(
+                DiffSeverity.NON_BREAKING, f"{path}.nullable", "became non-nullable (was nullable)",
+            ))
+
+    if old.allowed_values != new.allowed_values:
+        old_set = set(old.allowed_values or [])
+        new_set = set(new.allowed_values or [])
+        added   = sorted(new_set - old_set)
+        removed = sorted(old_set - new_set)
+        if old.allowed_values is None:
+            entries.append(DiffEntry(
+                DiffSeverity.NON_BREAKING, f"{path}.allowed_values", f"added constraint: {sorted(new_set)}",
+            ))
+        elif new.allowed_values is None:
+            entries.append(DiffEntry(
+                DiffSeverity.BREAKING, f"{path}.allowed_values", "removed constraint (no longer limited to a fixed set)",
+            ))
+        elif added:
+            entries.append(DiffEntry(
+                DiffSeverity.BREAKING, f"{path}.allowed_values", f"now allows additional values: {added}",
+            ))
+        else:
+            entries.append(DiffEntry(
+                DiffSeverity.NON_BREAKING, f"{path}.allowed_values", f"no longer allows: {removed}",
+            ))
+
+    return entries
+
+
+def _diff_schema(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    entries: list[DiffEntry] = []
+    old_cols = {c.name: c for c in (old.schema_.columns if old.schema_ else [])}
+    new_cols = {c.name: c for c in (new.schema_.columns if new.schema_ else [])}
+
+    for name in sorted(old_cols.keys() - new_cols.keys()):
+        entries.append(DiffEntry(DiffSeverity.BREAKING, f"schema.columns.{name}", "column removed"))
+    for name in sorted(new_cols.keys() - old_cols.keys()):
+        entries.append(DiffEntry(DiffSeverity.NON_BREAKING, f"schema.columns.{name}", "column added"))
+    for name in sorted(old_cols.keys() & new_cols.keys()):
+        entries.extend(_diff_column(f"schema.columns.{name}", old_cols[name], new_cols[name]))
+
+    return entries
+
+
+def _diff_volume(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    old_v, new_v = old.volume, new.volume
+    old_min = old_v.min_rows if old_v else None
+    new_min = new_v.min_rows if new_v else None
+    old_max = old_v.max_rows if old_v else None
+    new_max = new_v.max_rows if new_v else None
+
+    entries = [
+        _bound_diff("volume.min_rows", old_min, new_min, higher_is_looser=False),
+        _bound_diff("volume.max_rows", old_max, new_max, higher_is_looser=True),
+    ]
+    return [e for e in entries if e is not None]
+
+
+def _diff_freshness(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    old_age = old.freshness.max_age_hours if old.freshness else None
+    new_age = new.freshness.max_age_hours if new.freshness else None
+    e = _bound_diff("freshness.max_age_hours", old_age, new_age, higher_is_looser=True)
+    return [e] if e else []
+
+
+_QUALITY_BOUND_FIELDS = (
+    ("max_null_percentage", True),
+    ("max_duplicate_percentage", True),
+    ("min_value", False),
+    ("max_value", True),
+)
+
+
+def _diff_quality(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    entries: list[DiffEntry] = []
+    old_rules = {r.column: r for r in old.quality}
+    new_rules = {r.column: r for r in new.quality}
+
+    for col in sorted(old_rules.keys() - new_rules.keys()):
+        entries.append(DiffEntry(DiffSeverity.BREAKING, f"quality.{col}", "quality rule removed"))
+    for col in sorted(new_rules.keys() - old_rules.keys()):
+        entries.append(DiffEntry(DiffSeverity.NON_BREAKING, f"quality.{col}", "quality rule added"))
+
+    for col in sorted(old_rules.keys() & new_rules.keys()):
+        old_rule, new_rule = old_rules[col], new_rules[col]
+        for field, higher_is_looser in _QUALITY_BOUND_FIELDS:
+            e = _bound_diff(
+                f"quality.{col}.{field}",
+                getattr(old_rule, field), getattr(new_rule, field),
+                higher_is_looser=higher_is_looser,
+            )
+            if e:
+                entries.append(e)
+
+    return entries
+
+
+def diff_contracts(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    """Compare *old* and *new* contract versions.
+
+    Returns every detected change, classified as BREAKING or NON_BREAKING
+    for a consumer relying on *old*'s guarantees. Pure function — no I/O,
+    no registry access. Metadata, notifications, and consumer lists are not
+    compared — they don't affect what the data looks like to a consumer.
+    """
+    return [
+        *_diff_schema(old, new),
+        *_diff_volume(old, new),
+        *_diff_freshness(old, new),
+        *_diff_quality(old, new),
+    ]

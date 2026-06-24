@@ -46,6 +46,26 @@ class TestGetContractFromRegistry:
         assert exc_info.value.response.status_code == 404
 
 
+class TestGetContractVersionFromRegistry:
+    """Fetching a specific historical version — used by `akad diff`."""
+
+    def test_fetches_a_specific_old_version(self, akad_registry_client):
+        _publish(akad_registry_client, "versioned", version="1.0.0")
+        _publish(akad_registry_client, "versioned", version="2.0.0")
+
+        old = akad_registry_client.get_contract_version("versioned", "1.0.0")
+        new = akad_registry_client.get_contract_version("versioned", "2.0.0")
+
+        assert old.metadata.version == "1.0.0"
+        assert new.metadata.version == "2.0.0"
+
+    def test_raises_404_for_unknown_version(self, akad_registry_client):
+        _publish(akad_registry_client, "versioned", version="1.0.0")
+        with pytest.raises(httpx.HTTPStatusError) as exc_info:
+            akad_registry_client.get_contract_version("versioned", "9.9.9")
+        assert exc_info.value.response.status_code == 404
+
+
 class TestDataContractValidatorContractName:
     def test_raises_without_path_or_name(self):
         with pytest.raises(ValueError, match="contract_path or contract_name"):
