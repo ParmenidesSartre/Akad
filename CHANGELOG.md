@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/), versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-06-24
+
+### Added
+- `business_rules` contract section — cross-column and conditional checks that column-level Schema/Quality rules can't express (e.g. `status != 'COMPLETED' or ship_date.notnull()`, `end_date >= start_date`). Backed by pandas' own restricted expression evaluator (`df.eval(..., engine="python")`), not Python's `eval()` — no access to builtins, imports, or arbitrary function calls. A malformed expression becomes an `ERROR` clause rather than crashing the run.
+- `akad diff` now understands `business_rules`: a removed rule is breaking, an added rule is non-breaking, and a changed expression is conservatively always breaking (strictness can't be inferred statically from arbitrary code).
+- `akad.profiler.contract_to_yaml_dict()` now also serializes `business_rules` when present, for round-trip completeness (note: `akad infer` itself never generates business rules — there's no reliable way to derive cross-column logic from a data sample).
+
 ## [1.2.1] - 2026-06-23
 
 Code-quality hardening pass — no new features, no behavior changes for existing users.

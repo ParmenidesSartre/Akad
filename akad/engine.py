@@ -8,6 +8,7 @@ from akad.models.contract import DataContract
 from akad.models.result import ClauseResult, ClauseStatus, OverallStatus, ValidationResult
 from akad.readers.parquet_reader import ParquetReader
 from akad.readers.sql_reader import SQLReader
+from akad.validators.business_rule_validator import BusinessRuleValidator
 from akad.validators.freshness_validator import FreshnessValidator
 from akad.validators.quality_validator import QualityValidator
 from akad.validators.schema_validator import SchemaValidator
@@ -23,6 +24,7 @@ _DEFAULT_VALIDATORS = [
     FreshnessValidator(),
     VolumeValidator(),
     QualityValidator(),
+    BusinessRuleValidator(),
 ]
 
 

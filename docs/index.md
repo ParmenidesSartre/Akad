@@ -32,6 +32,7 @@ When a producer pipeline changes a dataset (renames a column, drops rows, adds b
 | **Quality — null rate** | Column null percentage does not exceed `max_null_percentage` |
 | **Quality — duplicate rate** | Column duplicate percentage does not exceed `max_duplicate_percentage` |
 | **Quality — value range** | Column values are within `min_value` / `max_value` bounds |
+| **Business rules** | Cross-column/conditional expressions hold for every row (e.g. `status != 'COMPLETED' or ship_date.notnull()`) |
 
 ### Dataset Formats
 
@@ -39,6 +40,21 @@ When a producer pipeline changes a dataset (renames a column, drops rows, adds b
 |---|---|
 | **Parquet** | Local path or S3 via `pyarrow` |
 | **SQL** | Any SQLAlchemy-supported database (PostgreSQL, MySQL, SQLite) via `table_name` + `connection_string` |
+
+### Business Rules
+
+Cross-column and conditional checks that the column-level Schema/Quality rules can't express — backed by [pandas' own expression evaluator](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.eval.html) (`df.eval(..., engine="python")`), not Python's `eval()`. It has no access to builtins, imports, or arbitrary function calls — only column references, comparisons, boolean logic, and a handful of pandas methods like `.isnull()`.
+
+```yaml
+business_rules:
+  - name: ship_date_required_when_completed
+    expression: "status != 'COMPLETED' or ship_date.notnull()"
+    description: "Completed orders must have a ship date"
+  - name: end_after_start
+    expression: "end_date >= start_date"
+```
+
+A rule fails if *any* row violates it; the failure message reports how many rows did. A malformed expression becomes an `ERROR` clause, not a crash.
 
 ### Breach Modes
 
@@ -76,7 +92,7 @@ FastAPI + Jinja2 + Tailwind (CDN, no build step) — overview of all contracts, 
 
 - `validate_dataframe(df, contract)` — skip storage reads in unit tests, pass a DataFrame directly
 - Injectable `_http_client` and `_registry_client` — test the full SDK without a real server
-- Custom validator plugin API — extend with your own business rules
+- Custom validator plugin API — for logic too complex for a `business_rules` expression (multi-table joins, external API calls, ML-based checks)
 - Split dependencies — `pip install akad-framework` (core only) keeps Airflow worker environments lean
 
 Continue to [Installation](installation.md) or jump straight to the [Quick Start](quickstart.md).

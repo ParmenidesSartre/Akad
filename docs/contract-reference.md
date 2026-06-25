@@ -47,6 +47,13 @@ quality:
     min_value: 0.01
     max_value: 9999999.0
 
+business_rules:
+  - name: ship_date_required_when_completed
+    expression: "status != 'COMPLETED' or ship_date.notnull()"
+    description: "Completed orders must have a ship date"   # optional
+  - name: end_after_start
+    expression: "end_date >= start_date"
+
 notifications:
   webhook:
     url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
