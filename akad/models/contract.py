@@ -47,6 +47,12 @@ class QualityRule(BaseModel):
     max_value:                float | None = None
 
 
+class BusinessRule(BaseModel):
+    name:        str
+    expression:  str
+    description: str | None = None
+
+
 class ConsumerSpec(BaseModel):
     team:          str
     email:         str
@@ -96,16 +102,17 @@ class NotificationsSpec(BaseModel):
 
 
 class DataContract(BaseModel):
-    api_version:   Literal["datacontract/v1"]    = Field(alias="apiVersion")
-    kind:          Literal["DataContract"]
-    metadata:      MetadataSpec
-    dataset:       DatasetSpec
-    on_breach:     Literal["warn", "fail"]       = "warn"
-    consumers:     list[ConsumerSpec]            = []
-    schema_:       SchemaSpec | None             = Field(None, alias="schema")
-    freshness:     FreshnessSpec | None          = None
-    volume:        VolumeSpec | None             = None
-    quality:       list[QualityRule]             = []
-    notifications: NotificationsSpec | None      = None
+    api_version:    Literal["datacontract/v1"]    = Field(alias="apiVersion")
+    kind:           Literal["DataContract"]
+    metadata:       MetadataSpec
+    dataset:        DatasetSpec
+    on_breach:      Literal["warn", "fail"]       = "warn"
+    consumers:      list[ConsumerSpec]            = []
+    schema_:        SchemaSpec | None             = Field(None, alias="schema")
+    freshness:      FreshnessSpec | None          = None
+    volume:         VolumeSpec | None             = None
+    quality:        list[QualityRule]             = []
+    business_rules: list[BusinessRule]            = []
+    notifications:  NotificationsSpec | None      = None
 
     model_config = {"populate_by_name": True}

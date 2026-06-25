@@ -173,6 +173,32 @@ def _diff_quality(old: DataContract, new: DataContract) -> list[DiffEntry]:
     return [*removed, *added, *changed]
 
 
+def _diff_business_rules(old: DataContract, new: DataContract) -> list[DiffEntry]:
+    old_rules = {r.name: r for r in old.business_rules}
+    new_rules = {r.name: r for r in new.business_rules}
+
+    removed = [
+        DiffEntry(DiffSeverity.BREAKING, f"business_rules.{name}", "business rule removed")
+        for name in sorted(old_rules.keys() - new_rules.keys())
+    ]
+    added = [
+        DiffEntry(DiffSeverity.NON_BREAKING, f"business_rules.{name}", "business rule added")
+        for name in sorted(new_rules.keys() - old_rules.keys())
+    ]
+    # An expression's strictness can't be inferred statically, so any change
+    # to an existing rule's logic is conservatively flagged as breaking —
+    # better a false alarm a human dismisses than a silent gap in coverage.
+    changed = [
+        DiffEntry(
+            DiffSeverity.BREAKING, f"business_rules.{name}",
+            f"expression changed from {old_rules[name].expression!r} to {new_rules[name].expression!r}",
+        )
+        for name in sorted(old_rules.keys() & new_rules.keys())
+        if old_rules[name].expression != new_rules[name].expression
+    ]
+    return [*removed, *added, *changed]
+
+
 def diff_contracts(old: DataContract, new: DataContract) -> list[DiffEntry]:
     """Compare *old* and *new* contract versions.
 
@@ -186,4 +212,5 @@ def diff_contracts(old: DataContract, new: DataContract) -> list[DiffEntry]:
         *_diff_volume(old, new),
         *_diff_freshness(old, new),
         *_diff_quality(old, new),
+        *_diff_business_rules(old, new),
     ]

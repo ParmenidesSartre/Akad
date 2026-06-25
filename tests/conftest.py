@@ -32,6 +32,7 @@ def make_contract(
     freshness: dict | None = None,
     volume: dict | None = None,
     quality: list[dict] | None = None,
+    business_rules: list[dict] | None = None,
     notifications: dict | None = None,
     consumers: list[dict] | None = None,
 ) -> DataContract:
@@ -55,6 +56,8 @@ def make_contract(
         raw["volume"] = volume
     if quality is not None:
         raw["quality"] = quality
+    if business_rules is not None:
+        raw["business_rules"] = business_rules
     if notifications is not None:
         raw["notifications"] = notifications
     if consumers is not None:

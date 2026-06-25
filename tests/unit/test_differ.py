@@ -231,6 +231,34 @@ class TestQualityBounds:
         assert entry.severity == DiffSeverity.NON_BREAKING
 
 
+class TestBusinessRules:
+    def test_rule_removed_is_breaking(self):
+        old = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount > 0"}])
+        new = make_contract()
+        entry = _entry(diff_contracts(old, new), "business_rules.positive_amount")
+        assert entry.severity == DiffSeverity.BREAKING
+
+    def test_rule_added_is_non_breaking(self):
+        old = make_contract()
+        new = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount > 0"}])
+        entry = _entry(diff_contracts(old, new), "business_rules.positive_amount")
+        assert entry.severity == DiffSeverity.NON_BREAKING
+
+    def test_unchanged_rule_produces_no_entry(self):
+        old = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount > 0"}])
+        new = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount > 0"}])
+        entries = [e for e in diff_contracts(old, new) if e.path.startswith("business_rules.")]
+        assert entries == []
+
+    def test_changed_expression_is_conservatively_breaking(self):
+        old = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount > 0"}])
+        new = make_contract(business_rules=[{"name": "positive_amount", "expression": "amount >= 0"}])
+        entry = _entry(diff_contracts(old, new), "business_rules.positive_amount")
+        assert entry.severity == DiffSeverity.BREAKING
+        assert "amount > 0" in entry.message
+        assert "amount >= 0" in entry.message
+
+
 class TestMultipleChanges:
     def test_mixed_breaking_and_non_breaking_changes_all_detected(self):
         old = make_contract(

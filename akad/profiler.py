@@ -184,4 +184,8 @@ def contract_to_yaml_dict(contract: DataContract) -> dict[str, Any]:
         d["volume"] = contract.volume.model_dump(exclude_none=True, mode="json")
     if contract.quality:
         d["quality"] = [q.model_dump(exclude_none=True, mode="json") for q in contract.quality]
+    if contract.business_rules:
+        d["business_rules"] = [
+            r.model_dump(exclude_none=True, mode="json") for r in contract.business_rules
+        ]
     return d

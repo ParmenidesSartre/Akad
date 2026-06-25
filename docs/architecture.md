@@ -13,7 +13,7 @@ flowchart TD
 
     subgraph Engine["Validation Engine"]
         Readers["Readers<br/>Parquet · SQL"]
-        Validators["Validators<br/>Schema · Freshness · Volume · Quality"]
+        Validators["Validators<br/>Schema · Freshness · Volume · Quality · Business Rules"]
         Readers --> Validators
     end
 
@@ -44,7 +44,7 @@ The only required piece. `DataContractValidator` loads a contract (from a local 
 Orchestrates two pluggable layers:
 
 - **Readers** (`akad.readers`) — load the dataset into a DataFrame. Built-in: `ParquetReader`, `SQLReader`.
-- **Validators** (`akad.validators`) — evaluate clauses against the DataFrame. Built-in: schema, freshness, volume, quality. Both are one-method ABCs (`DataReader`, `Validator`) — add a new format or rule by implementing one method and registering it, with no changes to the engine itself.
+- **Validators** (`akad.validators`) — evaluate clauses against the DataFrame. Built-in: schema, freshness, volume, quality, business rules (cross-column/conditional expressions via `df.eval()`). Both are one-method ABCs (`DataReader`, `Validator`) — add a new format or rule by implementing one method and registering it, with no changes to the engine itself.
 
 A validator is never allowed to crash the run: exceptions are caught and converted into `ERROR` clause results, so one buggy custom rule can't take down the whole validation.
 
@@ -62,7 +62,7 @@ Not a deployed component — a dev-time tool used by `akad infer`. Reads a datas
 
 ### Differ (`akad.differ`)
 
-Also not a deployed component — a pure, I/O-free comparison used by `akad diff`. Takes two already-loaded `DataContract` objects (from files or `RegistryClient.get_contract_version()`) and classifies every change as breaking or non-breaking for a consumer relying on the old contract: removing a column or loosening a numeric bound (a higher `max_rows`, a lower `min_value`, a wider `allowed_values` set) is breaking; tightening one is not. See the [SDK Reference](sdk-reference.md#akaddiffer-programmatic-breaking-change-detection) for the full rule table.
+Also not a deployed component — a pure, I/O-free comparison used by `akad diff`. Takes two already-loaded `DataContract` objects (from files or `RegistryClient.get_contract_version()`) and classifies every change as breaking or non-breaking for a consumer relying on the old contract: removing a column, a business rule, or loosening a numeric bound (a higher `max_rows`, a lower `min_value`, a wider `allowed_values` set) is breaking; tightening one is not. A changed business rule expression is conservatively always breaking — its strictness can't be inferred statically. See the [SDK Reference](sdk-reference.md#akaddiffer-programmatic-breaking-change-detection) for the full rule table.
 
 ## Design decisions worth knowing
 

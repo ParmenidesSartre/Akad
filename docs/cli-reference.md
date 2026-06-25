@@ -32,7 +32,7 @@ akad infer --name daily_sales --location data/daily_sales.parquet \
 
 For a SQL dataset, use `--format sql --connection-string ... --table-name ...` instead of `--location`.
 
-This is a **starting point, not a finished contract** — every inferred rule reflects only what the data looked like when profiled, not the business rules it's supposed to follow:
+This is a **starting point, not a finished contract** — every inferred rule reflects only what the data looked like when profiled, not the rules it's actually supposed to follow:
 
 - `allowed_values` is only inferred for string columns where values repeat and stay under a cardinality cap — but it still only knows about values seen in the sample. A rare-but-valid value not present when you ran `infer` will show up as a breach later.
 - Volume bounds are a 0.5×–2× band around the observed row count — adjust to your pipeline's actual expected range.
@@ -74,5 +74,8 @@ The rule applied throughout: **loosening** a guarantee is breaking, **tightening
 | `max_value` increased, or removed | Breaking | Consumer assuming a stricter ceiling may break |
 | A quality rule removed entirely | Breaking | A guarantee is gone |
 | A quality rule added | Non-breaking | A new guarantee, doesn't affect existing consumers |
+| A business rule removed entirely | Breaking | A guarantee is gone |
+| A business rule added | Non-breaking | A new guarantee, doesn't affect existing consumers |
+| A business rule's expression changed | Breaking (always) | Strictness can't be inferred statically from arbitrary code — flagged conservatively for human review |
 
 Out of scope by design: metadata (name, owner, tags), notifications, and consumer lists aren't compared — they don't affect what the data looks like to a consumer. `on_breach` and `check_column` changes are pipeline-internal, not surfaced either.

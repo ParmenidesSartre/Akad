@@ -7,4 +7,4 @@ Public API::
 from akad.sdk import DataContractBreachError, DataContractValidator
 
 __all__ = ["DataContractBreachError", "DataContractValidator"]
-__version__ = "1.2.1"
+__version__ = "1.3.0"
