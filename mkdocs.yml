@@ -57,6 +57,7 @@ nav:
   - Workflow: workflow.md
   - Contract Reference: contract-reference.md
   - CLI Reference: cli-reference.md
+  - Real-World Example: examples.md
   - SDK Reference: sdk-reference.md
   - API Reference: api-reference.md
   - Architecture: architecture.md
