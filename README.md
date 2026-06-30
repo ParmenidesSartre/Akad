@@ -113,7 +113,7 @@ A rule fails if *any* row violates it; the failure message reports how many rows
 - `akad infer` — profile an existing dataset and scaffold a starter contract YAML
 - `akad diff` — compare two contract versions, flag breaking vs non-breaking changes (CI-friendly)
 - `akad check` — parse and validate YAML syntax without touching data (CI-safe)
-- `akad publish` — register a contract version
+- `akad publish` — register a contract version; rejects a breaking change against the current version unless `--force` is passed
 - `akad validate` — run full validation, exit 1 on breach (CI-friendly)
 - `akad list` — list all current contracts in registry
 - `akad history` — show recent validation runs for a contract
@@ -211,6 +211,18 @@ docker compose up -d
 ```bash
 akad publish --contract contracts/sales.yaml --registry-url http://localhost:8000
 # Published daily_sales v1.0.0
+```
+
+The registry itself enforces breaking-change safety, not just `akad diff`: publishing a version that's breaking relative to the contract's current registered version is rejected with exit code `1`, listing exactly what broke — pass `--force` to publish anyway.
+
+```bash
+akad publish --contract contracts/sales.next.yaml --registry-url http://localhost:8000
+# Error: Publishing "daily_sales" v1.1.0 would introduce 1 breaking change(s) relative to the current v1.0.0. Pass force=true to publish anyway.
+#   ✗ schema.columns.region: column removed
+# Pass --force to publish anyway.
+
+akad publish --contract contracts/sales.next.yaml --registry-url http://localhost:8000 --force
+# Published daily_sales v1.1.0
 ```
 
 ### Step 4 — Validate in your pipeline
@@ -357,7 +369,7 @@ notifications:
 akad infer     --name NAME      [--format parquet|sql]  [--location PATH | --connection-string URL --table-name NAME]  [--output PATH]
 akad diff      --old PATH --new PATH | --name NAME --old-version V --new-version V --registry-url URL  [--output text|json]
 akad check     --contract PATH
-akad publish   --contract PATH  --registry-url URL
+akad publish   --contract PATH  --registry-url URL  [--force]
 akad validate  --contract PATH  [--registry-url URL]  [--output text|json]
 akad list      --registry-url URL
 akad history   --name NAME      --registry-url URL     [--limit N]

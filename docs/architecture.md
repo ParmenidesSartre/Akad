@@ -50,7 +50,9 @@ A validator is never allowed to crash the run: exceptions are caught and convert
 
 ### Registry (`registry/`)
 
-A FastAPI service backed by SQLAlchemy (PostgreSQL in production, SQLite for local dev). Stores contract versions and validation history, and serves them over a REST API with interactive docs at `/docs`. The SDK's `RegistryClient` treats registry connectivity as best-effort for *writes* (publishing a contract or posting a result never crashes a pipeline if the registry is down) but as load-bearing for the *read* that fetches a contract by name — a missing contract is a real failure, not something to silently ignore.
+A FastAPI service backed by SQLAlchemy (PostgreSQL in production, SQLite for local dev). Stores contract versions and validation history, and serves them over a REST API with interactive docs at `/docs`. The SDK's `RegistryClient` treats registry *connectivity* as best-effort for writes (publishing a contract or posting a result never crashes a pipeline if the registry is unreachable) but as load-bearing for the *read* that fetches a contract by name — a missing contract is a real failure, not something to silently ignore.
+
+A 409 from the registry is a different kind of failure and is never swallowed: `POST /contracts/` diffs an incoming publish against the contract's current registered version (using `akad.differ`, the same logic behind `akad diff`) and rejects it if the change is breaking, unless the request sets `force`. `RegistryClient.publish_contract()` surfaces this as `BreakingChangeRejectedError` rather than logging and continuing — it's a deliberate policy decision the caller needs to see, not a transient connectivity problem. This is what makes `akad diff` (a convention a team has to remember to run) backed by an actual enforcement point.
 
 ### Dashboard (`dashboard/`)
 

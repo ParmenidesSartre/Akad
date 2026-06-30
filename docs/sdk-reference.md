@@ -115,4 +115,22 @@ if breaking:
 
 `diff_contracts()` is a pure function — no I/O, no registry access — so it works equally well on two contracts loaded from files, fetched from the registry via `RegistryClient.get_contract_version(name, version)`, or built in memory (e.g. in a test asserting a proposed change is non-breaking).
 
+### `RegistryClient.publish_contract()` — the same check, enforced server-side
+
+The registry itself runs `diff_contracts()` against the contract's current registered version on every publish and rejects a breaking change, so this isn't just a check you have to remember to run — it happens regardless of who or what calls `publish_contract()`:
+
+```python
+from akad.registry_client import BreakingChangeRejectedError, RegistryClient
+
+client = RegistryClient("http://localhost:8000")
+try:
+    client.publish_contract(new_contract)
+except BreakingChangeRejectedError as exc:
+    for change in exc.breaking_changes:
+        print(change["path"], change["message"])
+    # client.publish_contract(new_contract, force=True)  # to publish anyway
+```
+
+`BreakingChangeRejectedError` is only raised for that deliberate 409 outcome — a registry that's simply unreachable is still swallowed and logged, consistent with every other write in `RegistryClient` (see [Architecture](architecture.md#registry-registry)).
+
 For auto-generated signatures and docstrings, see the [API Reference](api-reference.md).

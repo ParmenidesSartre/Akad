@@ -23,6 +23,18 @@ akad publish --contract contracts/sales.yaml --registry-url http://localhost:800
 # Published daily_sales v1.0.0
 ```
 
+The registry rejects a publish that's breaking relative to the current registered version — not just `akad diff`, which only warns. Pass `--force` to publish a breaking change deliberately:
+
+```bash
+akad publish --contract contracts/sales.next.yaml --registry-url http://localhost:8000
+# Error: Publishing "daily_sales" v1.1.0 would introduce 1 breaking change(s) relative to the current v1.0.0. Pass force=true to publish anyway.
+#   ✗ schema.columns.region: column removed
+# Pass --force to publish anyway.
+
+akad publish --contract contracts/sales.next.yaml --registry-url http://localhost:8000 --force
+# Published daily_sales v1.1.0
+```
+
 ## Step 4 — Validate in your pipeline
 
 **From a local file (dev / CI):**

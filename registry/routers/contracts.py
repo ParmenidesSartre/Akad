@@ -4,8 +4,11 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from akad.differ import DiffSeverity, diff_contracts
+from akad.models.contract import DataContract
 from registry.database import get_db
 from registry.models import ContractRecord
 from registry.schemas import ContractDetail, ContractPublishRequest, ContractSummary
@@ -21,8 +24,44 @@ def _get_or_404(db: Session, *filters: Any, detail: str) -> ContractRecord:
     return record
 
 
+def _breaking_changes(old_content: dict[str, Any], new_content: dict[str, Any]) -> list[dict[str, str]]:
+    """Diff two raw contract dicts, returning only the breaking changes.
+
+    Either side failing to parse as a DataContract degrades gracefully —
+    skips the check rather than blocking a publish over unrelated bad data
+    (e.g. a malformed historical record that predates schema validation).
+    """
+    try:
+        old = DataContract.model_validate(old_content)
+        new = DataContract.model_validate(new_content)
+    except ValidationError:
+        return []
+    return [
+        {"path": e.path, "message": e.message}
+        for e in diff_contracts(old, new)
+        if e.severity == DiffSeverity.BREAKING
+    ]
+
+
 @router.post("/", status_code=201, response_model=ContractSummary)
 def publish_contract(req: ContractPublishRequest, db: Session = Depends(get_db)):
+    current = db.query(ContractRecord).filter(
+        ContractRecord.name == req.name,
+        ContractRecord.is_current.is_(True),
+    ).first()
+
+    if current is not None and not req.force:
+        breaking = _breaking_changes(json.loads(current.content), req.content)
+        if breaking:
+            raise HTTPException(status_code=409, detail={
+                "message": (
+                    f'Publishing "{req.name}" v{req.version} would introduce '
+                    f"{len(breaking)} breaking change(s) relative to the current "
+                    f"v{current.version}. Pass force=true to publish anyway."
+                ),
+                "breaking_changes": breaking,
+            })
+
     # Mark all previous versions of this contract as not current
     db.query(ContractRecord).filter(
         ContractRecord.name == req.name,

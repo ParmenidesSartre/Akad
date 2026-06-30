@@ -4,7 +4,7 @@
 akad infer     --name NAME      [--format parquet|sql]  [--location PATH | --connection-string URL --table-name NAME]  [--output PATH]
 akad diff      --old PATH --new PATH | --name NAME --old-version V --new-version V --registry-url URL  [--output text|json]
 akad check     --contract PATH
-akad publish   --contract PATH  --registry-url URL
+akad publish   --contract PATH  --registry-url URL  [--force]
 akad validate  --contract PATH  [--registry-url URL]  [--output text|json]
 akad list      --registry-url URL
 akad history   --name NAME      --registry-url URL     [--limit N]
@@ -15,7 +15,7 @@ akad history   --name NAME      --registry-url URL     [--limit N]
 | `akad infer` | Profile an existing dataset and scaffold a starter contract YAML | — |
 | `akad diff` | Compare two contract versions; flag breaking vs non-breaking changes | Yes — fail the build on a breaking contract change |
 | `akad check` | Parse and validate contract YAML syntax without touching data | Yes — catches typos before they hit a pipeline |
-| `akad publish` | Register a contract version with the registry | — |
+| `akad publish` | Register a contract version with the registry; rejects a breaking change against the current version unless `--force` is passed | Yes — `akad diff` warns, the registry itself enforces |
 | `akad validate` | Run full validation against the dataset; exits `1` on breach | Yes — fail the build on a breach |
 | `akad list` | List all current contracts in the registry | — |
 | `akad history` | Show recent validation runs for a contract | — |
@@ -79,3 +79,19 @@ The rule applied throughout: **loosening** a guarantee is breaking, **tightening
 | A business rule's expression changed | Breaking (always) | Strictness can't be inferred statically from arbitrary code — flagged conservatively for human review |
 
 Out of scope by design: metadata (name, owner, tags), notifications, and consumer lists aren't compared — they don't affect what the data looks like to a consumer. `on_breach` and `check_column` changes are pipeline-internal, not surfaced either.
+
+## `akad publish` — register a contract version, enforced
+
+```bash
+akad publish --contract contracts/daily_sales.yaml --registry-url http://localhost:8000
+```
+
+The registry diffs the incoming contract against whatever version is currently registered under the same name, using the exact same logic as `akad diff`. If the change is breaking, the publish is rejected — exit code `1`, with each breaking change listed — instead of silently going through:
+
+```
+Error: Publishing "daily_sales" v1.1.0 would introduce 1 breaking change(s) relative to the current v1.0.0. Pass force=true to publish anyway.
+  ✗ schema.columns.region: column removed
+Pass --force to publish anyway.
+```
+
+Pass `--force` to publish a known breaking change deliberately. A contract being published for the first time under a given name is never gated — there's no prior version to be breaking relative to. This closes the gap `akad diff` alone can't: `diff` only catches a breaking change if someone remembers to run it before publishing; the registry now enforces it regardless.

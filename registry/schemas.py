@@ -10,6 +10,7 @@ class ContractPublishRequest(BaseModel):
     name:    str
     version: str
     content: dict[str, Any]
+    force:   bool = False
 
 
 class ContractSummary(BaseModel):

@@ -4,16 +4,59 @@ plus failure-tolerance tests against an unreachable host.
 from __future__ import annotations
 
 import logging
+from unittest.mock import patch
 
 import httpx
 import pytest
 
 from akad.models.result import ClauseResult, ClauseStatus, OverallStatus
-from akad.registry_client import RegistryClient
+from akad.registry_client import BreakingChangeRejectedError, RegistryClient
 from tests.conftest import make_contract, make_validation_result
 
 # Nothing listens here — connection is refused immediately
 DEAD_URL = "http://127.0.0.1:9"
+
+
+class TestPublishContractBreakingChangeGate:
+    def test_breaking_change_raises_without_force(self, akad_registry_client):
+        akad_registry_client.publish_contract(make_contract(
+            name="gated", version="1.0.0",
+            schema_columns=[{"name": "id", "type": "string"}, {"name": "region", "type": "string"}],
+        ))
+        with pytest.raises(BreakingChangeRejectedError) as exc_info:
+            akad_registry_client.publish_contract(make_contract(
+                name="gated", version="2.0.0",
+                schema_columns=[{"name": "id", "type": "string"}],  # region removed
+            ))
+        assert exc_info.value.breaking_changes == [
+            {"path": "schema.columns.region", "message": "column removed"},
+        ]
+
+    def test_non_409_http_error_still_swallowed(self, caplog):
+        # Any other HTTP error status (e.g. a 500) is unrelated to the
+        # breaking-change gate and must stay swallow-and-log, not raise —
+        # only a 409 is treated as the deliberate "rejected" business outcome.
+        response = httpx.Response(
+            status_code=500, request=httpx.Request("POST", "http://x/contracts/"),
+        )
+        client = RegistryClient("http://x")
+        with patch.object(client, "_post", return_value=response), \
+             caplog.at_level(logging.WARNING):
+            client.publish_contract(make_contract())  # must not raise
+        assert "Failed to publish contract" in caplog.text
+
+    def test_breaking_change_succeeds_with_force(self, akad_registry_client):
+        akad_registry_client.publish_contract(make_contract(
+            name="forced", version="1.0.0",
+            schema_columns=[{"name": "id", "type": "string"}, {"name": "region", "type": "string"}],
+        ))
+        akad_registry_client.publish_contract(make_contract(
+            name="forced", version="2.0.0",
+            schema_columns=[{"name": "id", "type": "string"}],
+        ), force=True)  # must not raise
+
+        contract = akad_registry_client.get_contract("forced")
+        assert contract.metadata.version == "2.0.0"
 
 
 class TestPostValidationResult:

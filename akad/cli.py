@@ -9,7 +9,7 @@ import typer
 from akad.contract_loader import load_contract
 from akad.models.contract import DataContract
 from akad.models.result import ValidationResult
-from akad.registry_client import RegistryClient
+from akad.registry_client import BreakingChangeRejectedError, RegistryClient
 
 # Force UTF-8 output so the ✓/✗ icons below don't crash on a non-UTF-8
 # console (e.g. the cp1252 default on many Windows setups) — without this,
@@ -54,11 +54,23 @@ def validate(
 def publish(
     contract:     Path = typer.Option(..., "--contract", "-c", help="Path to contract YAML"),
     registry_url: str  = typer.Option(..., "--registry-url", "-r", help="Registry URL"),
+    force:        bool = typer.Option(False, "--force", help="Publish even if it's a breaking change"),
 ) -> None:
-    """Publish a contract to the registry."""
+    """Publish a contract to the registry.
+
+    Rejected with exit code 1 if this would be a breaking change relative to
+    the registry's current version — pass --force to publish anyway.
+    """
     c = load_contract(contract)
     client = RegistryClient(registry_url)
-    client.publish_contract(c)
+    try:
+        client.publish_contract(c, force=force)
+    except BreakingChangeRejectedError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        for change in exc.breaking_changes:
+            typer.echo(f"  ✗ {change['path']}: {change['message']}", err=True)
+        typer.echo("Pass --force to publish anyway.", err=True)
+        raise typer.Exit(code=1) from exc
     typer.echo(f"Published {c.metadata.name} v{c.metadata.version}")
 
 

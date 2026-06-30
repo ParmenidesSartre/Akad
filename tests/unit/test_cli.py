@@ -6,7 +6,7 @@ so no server is needed.
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import yaml
 from typer.testing import CliRunner
@@ -110,7 +110,37 @@ class TestPublish:
         assert result.exit_code == 0
         assert "Published cli_sales v1.0.0" in result.output
         client_cls.assert_called_once_with("http://localhost:8000")
-        client_cls.return_value.publish_contract.assert_called_once()
+        client_cls.return_value.publish_contract.assert_called_once_with(ANY, force=False)
+
+    def test_force_flag_is_passed_through(self, tmp_path):
+        path = _write_contract_yaml(tmp_path, "/tmp/x.parquet")
+        with patch("akad.cli.RegistryClient") as client_cls:
+            result = runner.invoke(app, [
+                "publish", "--contract", str(path),
+                "--registry-url", "http://localhost:8000", "--force",
+            ])
+
+        assert result.exit_code == 0
+        client_cls.return_value.publish_contract.assert_called_once_with(ANY, force=True)
+
+    def test_breaking_change_rejection_exits_one(self, tmp_path):
+        from akad.registry_client import BreakingChangeRejectedError
+
+        path = _write_contract_yaml(tmp_path, "/tmp/x.parquet")
+        with patch("akad.cli.RegistryClient") as client_cls:
+            client_cls.return_value.publish_contract.side_effect = BreakingChangeRejectedError(
+                'Publishing "cli_sales" v1.0.0 would introduce 1 breaking change(s).',
+                [{"path": "schema.columns.region", "message": "column removed"}],
+            )
+            result = runner.invoke(app, [
+                "publish", "--contract", str(path),
+                "--registry-url", "http://localhost:8000",
+            ])
+
+        assert result.exit_code == 1
+        assert "would introduce 1 breaking change" in result.output
+        assert "schema.columns.region: column removed" in result.output
+        assert "Pass --force" in result.output
 
 
 class TestList:
