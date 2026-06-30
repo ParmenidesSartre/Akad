@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/), versioning follows [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-06-30
+
+### Added
+- `ConsumerSpec.depends_on` — a consumer can now declare which specific contract guarantees it relies on (e.g. `schema.columns.currency_code`, `quality.amount.max_value`), using the same path vocabulary `akad diff` already produces
+- `akad diff` cross-references every detected change against the old contract's consumers and annotates each `DiffEntry` with `affected_consumers` — turning "this is breaking" into "this will break Fraud Detection's currency check," before the change ships. Matching works in both directions: depending on a whole column/rule is flagged when a sub-attribute changes, and depending on one specific sub-rule is still flagged if the whole thing is removed.
+- Purely additive: a consumer with no `depends_on` declared behaves exactly as before, and existing breach-notification behavior is unchanged
+
 ## [1.3.0] - 2026-06-24
 
 ### Added

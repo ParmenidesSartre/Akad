@@ -55,6 +55,14 @@ akad diff --name daily_sales --old-version 1.0.0 --new-version 1.1.0 --registry-
 
 Exits `1` if any breaking change is found — wire it into CI on the contracts repo to catch breaking changes before they're published, not after a consumer's pipeline breaks.
 
+If a consumer in the old contract declares `depends_on` paths (see [Contract Reference](contract-reference.md)), each diff entry is annotated with which teams are affected:
+
+```
+✗ BREAKING  schema.columns.currency_code.allowed_values: now allows additional values: ['JPY']  [affects: Fraud Detection]
+```
+
+The path vocabulary is exactly what's in the table below (e.g. `schema.columns.currency_code`, `quality.amount.max_value`) — a consumer can depend on a whole column/rule or one specific sub-attribute of it, and matching works in both directions: depending on a whole column flags it when a sub-attribute changes, and depending on one specific rule still flags it if the entire rule is removed.
+
 The rule applied throughout: **loosening** a guarantee is breaking, **tightening** one is not.
 
 | Change | Breaking? | Why |

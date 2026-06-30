@@ -280,3 +280,64 @@ class TestMultipleChanges:
         assert by_path["schema.columns.region"] == DiffSeverity.BREAKING
         assert by_path["schema.columns.notes"] == DiffSeverity.NON_BREAKING
         assert by_path["volume.min_rows"] == DiffSeverity.BREAKING
+
+
+class TestAffectedConsumers:
+    def test_consumer_depending_on_whole_column_matches_subattribute_change(self):
+        old = make_contract(
+            schema_columns=[{"name": "ccy", "type": "string", "allowed_values": ["MYR", "USD"]}],
+            consumers=[{"team": "Fraud", "email": "fraud@x.com", "depends_on": ["schema.columns.ccy"]}],
+        )
+        new = make_contract(
+            schema_columns=[{"name": "ccy", "type": "string", "allowed_values": ["MYR", "USD", "JPY"]}],
+        )
+        entry = _entry(diff_contracts(old, new), "schema.columns.ccy.allowed_values")
+        assert entry.affected_consumers == ["Fraud"]
+
+    def test_consumer_depending_on_specific_rule_matches_whole_rule_removed(self):
+        old = make_contract(
+            quality=[{"column": "id", "max_null_percentage": 0.0}],
+            consumers=[{"team": "Reporting", "email": "r@x.com", "depends_on": ["quality.id.max_null_percentage"]}],
+        )
+        new = make_contract()
+        entry = _entry(diff_contracts(old, new), "quality.id")
+        assert entry.affected_consumers == ["Reporting"]
+
+    def test_unrelated_dependency_does_not_match(self):
+        old = make_contract(
+            schema_columns=[
+                {"name": "ccy", "type": "string"},
+                {"name": "region", "type": "string"},
+            ],
+            consumers=[{"team": "Fraud", "email": "fraud@x.com", "depends_on": ["schema.columns.ccy"]}],
+        )
+        new = make_contract(schema_columns=[{"name": "ccy", "type": "string"}])
+        entry = _entry(diff_contracts(old, new), "schema.columns.region")
+        assert entry.affected_consumers == []
+
+    def test_consumer_with_no_depends_on_never_matches(self):
+        old = make_contract(
+            schema_columns=[{"name": "ccy", "type": "string"}],
+            consumers=[{"team": "Silent", "email": "s@x.com"}],
+        )
+        new = make_contract()
+        entry = _entry(diff_contracts(old, new), "schema.columns.ccy")
+        assert entry.affected_consumers == []
+
+    def test_multiple_consumers_only_matching_ones_listed(self):
+        old = make_contract(
+            schema_columns=[{"name": "ccy", "type": "string"}],
+            consumers=[
+                {"team": "Fraud", "email": "fraud@x.com", "depends_on": ["schema.columns.ccy"]},
+                {"team": "Marketing", "email": "m@x.com", "depends_on": ["schema.columns.region"]},
+            ],
+        )
+        new = make_contract()
+        entry = _entry(diff_contracts(old, new), "schema.columns.ccy")
+        assert entry.affected_consumers == ["Fraud"]
+
+    def test_no_consumers_means_empty_list_not_an_error(self):
+        old = make_contract(schema_columns=[{"name": "ccy", "type": "string"}])
+        new = make_contract()
+        entry = _entry(diff_contracts(old, new), "schema.columns.ccy")
+        assert entry.affected_consumers == []

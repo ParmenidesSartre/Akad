@@ -10,7 +10,7 @@ guarantee also satisfied the old, looser one).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 from akad.models.contract import ColumnSpec, DataContract
@@ -23,9 +23,26 @@ class DiffSeverity(StrEnum):
 
 @dataclass
 class DiffEntry:
-    severity: DiffSeverity
-    path:     str
-    message:  str
+    severity:           DiffSeverity
+    path:               str
+    message:            str
+    affected_consumers: list[str] = field(default_factory=list)
+
+
+def _path_matches(diff_path: str, dependency: str) -> bool:
+    """True if a consumer's declared *dependency* overlaps with *diff_path*.
+
+    Handles both directions: a consumer depending on a whole column
+    ("schema.columns.ccy") is affected by a change to one of its
+    sub-attributes ("schema.columns.ccy.allowed_values"), and a consumer
+    depending on one specific rule is still affected if the broader thing
+    it lives under is removed entirely.
+    """
+    return (
+        diff_path == dependency
+        or diff_path.startswith(dependency + ".")
+        or dependency.startswith(diff_path + ".")
+    )
 
 
 def _bound_diff(
@@ -204,13 +221,22 @@ def diff_contracts(old: DataContract, new: DataContract) -> list[DiffEntry]:
 
     Returns every detected change, classified as BREAKING or NON_BREAKING
     for a consumer relying on *old*'s guarantees. Pure function — no I/O,
-    no registry access. Metadata, notifications, and consumer lists are not
-    compared — they don't affect what the data looks like to a consumer.
+    no registry access. Metadata, notifications, and the consumer list
+    itself are not diffed as changes — they don't affect what the data
+    looks like. The OLD contract's consumers ARE used, though, to annotate
+    each entry with which teams declared a dependency (via
+    ConsumerSpec.depends_on) that overlaps with that specific change.
     """
-    return [
+    entries = [
         *_diff_schema(old, new),
         *_diff_volume(old, new),
         *_diff_freshness(old, new),
         *_diff_quality(old, new),
         *_diff_business_rules(old, new),
     ]
+    for entry in entries:
+        entry.affected_consumers = [
+            consumer.team for consumer in old.consumers
+            if any(_path_matches(entry.path, dep) for dep in consumer.depends_on)
+        ]
+    return entries

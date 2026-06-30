@@ -241,6 +241,61 @@ class TestDiff:
         assert payload[0]["severity"] == "BREAKING"
         assert payload[0]["path"] == "volume.min_rows"
 
+    def test_text_output_shows_affected_consumers(self, tmp_path):
+        old = tmp_path / "old.yaml"
+        old.write_text("""\
+apiVersion: datacontract/v1
+kind: DataContract
+metadata:
+  name: cli_sales
+  version: "1.0.0"
+  owner:
+    team: Test Team
+    email: test@example.com
+dataset:
+  format: parquet
+  location: /tmp/x.parquet
+on_breach: warn
+volume:
+  min_rows: 1000
+consumers:
+  - team: Fraud Detection
+    email: fraud@example.com
+    depends_on: ["volume.min_rows"]
+""")
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        result = runner.invoke(app, ["diff", "--old", str(old), "--new", str(new)])
+        assert "[affects: Fraud Detection]" in result.output
+
+    def test_json_output_includes_affected_consumers(self, tmp_path):
+        old = tmp_path / "old.yaml"
+        old.write_text("""\
+apiVersion: datacontract/v1
+kind: DataContract
+metadata:
+  name: cli_sales
+  version: "1.0.0"
+  owner:
+    team: Test Team
+    email: test@example.com
+dataset:
+  format: parquet
+  location: /tmp/x.parquet
+on_breach: warn
+volume:
+  min_rows: 1000
+consumers:
+  - team: Fraud Detection
+    email: fraud@example.com
+    depends_on: ["volume.min_rows"]
+""")
+        new = _write_volume_contract(tmp_path, "new.yaml", min_rows=500)
+        result = runner.invoke(app, [
+            "diff", "--old", str(old), "--new", str(new), "--output", "json",
+        ])
+        payload = json.loads(result.output)
+        assert payload[0]["affected_consumers"] == ["Fraud Detection"]
+
     def test_requires_old_and_new_or_registry_args(self):
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 2

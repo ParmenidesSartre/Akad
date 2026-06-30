@@ -215,7 +215,10 @@ def diff(
 
     if output == "json":
         typer.echo(json.dumps([
-            {"severity": e.severity.value, "path": e.path, "message": e.message}
+            {
+                "severity": e.severity.value, "path": e.path, "message": e.message,
+                "affected_consumers": e.affected_consumers,
+            }
             for e in entries
         ], indent=2))
     else:
@@ -223,7 +226,8 @@ def diff(
             typer.echo("No differences detected.")
         for e in entries:
             icon = "✗" if e.severity == DiffSeverity.BREAKING else "✓"
-            typer.echo(f"  {icon} {e.severity.value:12s} {e.path}: {e.message}")
+            affects = f"  [affects: {', '.join(e.affected_consumers)}]" if e.affected_consumers else ""
+            typer.echo(f"  {icon} {e.severity.value:12s} {e.path}: {e.message}{affects}")
         if entries:
             typer.echo(f"\n{len(breaking)} breaking, {len(entries) - len(breaking)} non-breaking change(s).")
 

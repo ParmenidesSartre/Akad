@@ -337,6 +337,14 @@ business_rules:
   - name: end_after_start
     expression: "end_date >= start_date"
 
+consumers:
+  - team: Fraud Detection
+    email: fraud-team@example.com
+    slack_webhook: https://hooks.slack.com/services/FRAUD/TEAM/WEBHOOK   # optional
+    depends_on:                          # optional — paths in akad diff's own vocabulary
+      - schema.columns.currency_code     # whole column
+      - quality.amount.max_value         # one specific rule
+
 notifications:
   webhook:
     url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
@@ -389,13 +397,15 @@ akad diff --name daily_sales --old-version 1.0.0 --new-version 1.1.0 --registry-
 
 ```
   ✗ BREAKING      schema.columns.region: column removed
-  ✗ BREAKING      schema.columns.currency_code.allowed_values: now allows additional values: ['JPY']
+  ✗ BREAKING      schema.columns.currency_code.allowed_values: now allows additional values: ['JPY']  [affects: Fraud Detection]
   ✓ NON_BREAKING  volume.min_rows: changed from 500 to 1000
 
 2 breaking, 1 non-breaking change(s).
 ```
 
 Exits `1` if any breaking change is found — drop it into CI to catch contract changes that would break a downstream consumer before they're published.
+
+If a consumer declares `depends_on` paths (see the `consumers:` block in the [Contract YAML Reference](#contract-yaml-reference)), `akad diff` flags exactly which teams are affected by each change — turning "this is breaking" into "this will break Fraud Detection's currency check," before the change ever ships. A consumer that depends on a whole column or rule is also flagged if the specific thing they depend on is removed entirely.
 
 ---
 

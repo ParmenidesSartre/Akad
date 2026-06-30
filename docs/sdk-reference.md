@@ -106,7 +106,7 @@ old = load_contract("contracts/daily_sales.yaml")
 new = load_contract("contracts/daily_sales.next.yaml")
 
 for entry in diff_contracts(old, new):
-    print(entry.severity, entry.path, entry.message)
+    print(entry.severity, entry.path, entry.message, entry.affected_consumers)
 
 breaking = [e for e in diff_contracts(old, new) if e.severity == DiffSeverity.BREAKING]
 if breaking:
@@ -114,5 +114,7 @@ if breaking:
 ```
 
 `diff_contracts()` is a pure function — no I/O, no registry access — so it works equally well on two contracts loaded from files, fetched from the registry via `RegistryClient.get_contract_version(name, version)`, or built in memory (e.g. in a test asserting a proposed change is non-breaking).
+
+Each `DiffEntry.affected_consumers` is a list of team names — populated from the **old** contract's `consumers`, by matching each consumer's declared `depends_on` paths against the entry's `path`. A consumer with no `depends_on` declared never appears here; this is purely additive and doesn't change anything about how breach notifications are sent.
 
 For auto-generated signatures and docstrings, see the [API Reference](api-reference.md).

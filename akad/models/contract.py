@@ -57,6 +57,7 @@ class ConsumerSpec(BaseModel):
     team:          str
     email:         str
     slack_webhook: str | None = None
+    depends_on:    list[str] = []
 
 
 class OwnerSpec(BaseModel):

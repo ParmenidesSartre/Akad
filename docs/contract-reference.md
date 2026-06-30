@@ -54,6 +54,14 @@ business_rules:
   - name: end_after_start
     expression: "end_date >= start_date"
 
+consumers:
+  - team: Fraud Detection
+    email: fraud-team@example.com
+    slack_webhook: https://hooks.slack.com/services/FRAUD/TEAM/WEBHOOK   # optional
+    depends_on:                          # optional — paths in akad diff's own vocabulary
+      - schema.columns.currency_code     # whole column
+      - quality.amount.max_value         # one specific rule
+
 notifications:
   webhook:
     url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
@@ -65,3 +73,5 @@ notifications:
     recipients:
       - data-team@example.com
 ```
+
+`depends_on` doesn't change notification behavior — every consumer still gets notified the same way as before. It's read only by `akad diff` (see [CLI Reference](cli-reference.md#akad-diff-flag-breaking-changes-before-you-publish)), which uses it to annotate each detected change with the teams it actually affects.
